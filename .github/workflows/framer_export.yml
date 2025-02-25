@@ -2,7 +2,7 @@ name: Export Framer Sites to HTML
 
 on:
   schedule:
-    - cron: '*/2 * * * *'  # Runs every 5 minutes
+    - cron: '*/5 * * * *'  # Runs every 5 minutes
   workflow_dispatch:  # Allows manual triggering of the workflow
 
 jobs:
@@ -18,17 +18,23 @@ jobs:
 
       - name: Export Main Framer Site
         run: |
+          echo "Downloading main site..."
           httrack "https://semat.framer.website/" -O ./main_site --mirror --keep-alive --depth=2 --clean
-          # Move the downloaded content to the root directory
-          mv ./main_site/semat.framer.website/* ./
+          # Move the downloaded files to the repository root
+          if [ -d "./main_site/semat.framer.website" ]; then
+            mv ./main_site/semat.framer.website/* ./
+          fi
           rm -rf ./main_site
 
       - name: Export Arabic Framer Site
         run: |
+          echo "Downloading Arabic site..."
           httrack "https://semat.framer.website/ar" -O ./ar_site --mirror --keep-alive --depth=2 --clean
-          # Move the downloaded content to the /ar directory
           mkdir -p ./ar
-          mv ./ar_site/semat.framer.website/ar/* ./ar/
+          # Move the downloaded files to the /ar directory
+          if [ -d "./ar_site/semat.framer.website/ar" ]; then
+            mv ./ar_site/semat.framer.website/ar/* ./ar/
+          fi
           rm -rf ./ar_site
 
       - name: Commit and Push Changes
@@ -43,3 +49,4 @@ jobs:
           else
             git commit -m "Automated update of exported Framer sites"
             git push origin HEAD:main
+          fi
