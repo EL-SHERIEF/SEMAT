@@ -2,7 +2,7 @@ name: Export Framer Sites to HTML
 
 on:
   schedule:
-    - cron: '*/5 * * * *'  # Runs every 5 minutes
+    - cron: '*/2 * * * *'  # Runs every 5 minutes
   workflow_dispatch:  # Allows manual triggering of the workflow
 
 jobs:
@@ -13,39 +13,33 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Export Framer Sites
+      - name: Install HTTrack
+        run: sudo apt-get install -y httrack
+
+      - name: Export Main Framer Site
         run: |
-          # Create directories for the exported sites
-          mkdir -p exported_site/ar
+          httrack "https://semat.framer.website/" -O ./main_site --mirror --keep-alive --depth=2 --clean
+          # Move the downloaded content to the root directory
+          mv ./main_site/semat.framer.website/* ./
+          rm -rf ./main_site
 
-          # Define the base URL and output directories
-          BASE_URL="https://semat.framer.website"
-          OUTPUT_DIR="exported_site"
-
-          # Function to download a site using wget
-          download_site() {
-            local url=$1
-            local output_path=$2
-
-            wget --mirror --convert-links --adjust-extension --page-requisites --no-parent --directory-prefix="$output_path" "$url"
-          }
-
-          # Download the main site
-          download_site "$BASE_URL" "$OUTPUT_DIR"
-
-          # Download the Arabic version of the site
-          download_site "$BASE_URL/ar" "$OUTPUT_DIR/ar"
+      - name: Export Arabic Framer Site
+        run: |
+          httrack "https://semat.framer.website/ar" -O ./ar_site --mirror --keep-alive --depth=2 --clean
+          # Move the downloaded content to the /ar directory
+          mkdir -p ./ar
+          mv ./ar_site/semat.framer.website/ar/* ./ar/
+          rm -rf ./ar_site
 
       - name: Commit and Push Changes
         env:
-          ACTIONS_PAT: ${{ secrets.ACTIONS_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add exported_site
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add .
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
             git commit -m "Automated update of exported Framer sites"
-            git push https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/${{ github.repository }}.git HEAD:main
-          fi
+            git push origin HEAD:main
