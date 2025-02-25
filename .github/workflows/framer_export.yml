@@ -20,9 +20,9 @@ jobs:
         run: |
           echo "Downloading main site..."
           httrack "https://semat.framer.website/" -O ./main_site --mirror --keep-alive --depth=2 --clean
-          # Move the downloaded files to the repository root
+          # Sync the downloaded files to the repository root
           if [ -d "./main_site/semat.framer.website" ]; then
-            mv ./main_site/semat.framer.website/* ./
+            rsync -a ./main_site/semat.framer.website/ ./
           fi
           rm -rf ./main_site
 
@@ -31,9 +31,9 @@ jobs:
           echo "Downloading Arabic site..."
           httrack "https://semat.framer.website/ar" -O ./ar_site --mirror --keep-alive --depth=2 --clean
           mkdir -p ./ar
-          # Move the downloaded files to the /ar directory
+          # Sync the downloaded files to the /ar directory
           if [ -d "./ar_site/semat.framer.website/ar" ]; then
-            mv ./ar_site/semat.framer.website/ar/* ./ar/
+            rsync -a ./ar_site/semat.framer.website/ar/ ./ar/
           fi
           rm -rf ./ar_site
 
