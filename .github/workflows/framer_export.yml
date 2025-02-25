@@ -2,7 +2,7 @@ name: Export Framer Sites to HTML
 
 on:
   schedule:
-    - cron: '*/1 * * * *'  # Runs every 5 minutes
+    - cron: '*/5 * * * *'  # Runs every 5 minutes
   workflow_dispatch:  # Allows manual triggering of the workflow
 
 jobs:
@@ -13,44 +13,28 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '14'
-
-      - name: Install Dependencies
-        run: npm install axios
-
       - name: Export Framer Sites
         run: |
+          # Create directories for the exported sites
           mkdir -p exported_site/ar
-          node <<'EOF'
-          const axios = require('axios');
-          const fs = require('fs').promises;
-          const path = require('path');
 
-          const exportSite = async (url, outputPath) => {
-            try {
-              const response = await axios.post('https://nocodexport.com/tools/framer-to-html', { url }, { responseType: 'text' });
-              await fs.writeFile(outputPath, response.data);
-              console.log(`Site exported successfully: ${url}`);
-            } catch (error) {
-              console.error(`Error exporting site (${url}):`, error.message);
-              process.exit(1);
-            }
-          };
+          # Define the base URL and output directories
+          BASE_URL="https://semat.framer.website"
+          OUTPUT_DIR="exported_site"
 
-          (async () => {
-            const sites = [
-              { url: 'https://semat.framer.website', outputPath: path.join(process.cwd(), 'exported_site', 'index.html') },
-              { url: 'https://semat.framer.website/ar', outputPath: path.join(process.cwd(), 'exported_site', 'ar', 'index.html') }
-            ];
+          # Function to download a site using wget
+          download_site() {
+            local url=$1
+            local output_path=$2
 
-            for (const site of sites) {
-              await exportSite(site.url, site.outputPath);
-            }
-          })();
-          EOF
+            wget --mirror --convert-links --adjust-extension --page-requisites --no-parent --directory-prefix="$output_path" "$url"
+          }
+
+          # Download the main site
+          download_site "$BASE_URL" "$OUTPUT_DIR"
+
+          # Download the Arabic version of the site
+          download_site "$BASE_URL/ar" "$OUTPUT_DIR/ar"
 
       - name: Commit and Push Changes
         env:
