@@ -2,7 +2,8 @@ name: Export Framer Sites to HTML
 
 on:
   schedule:
-    - cron: "*/5 * * * *"  # Runs every 5 minutes
+    - cron: '*/5 * * * *'  # Runs every 5 minutes
+  workflow_dispatch:  # Allows manual triggering of the workflow
 
 jobs:
   export-and-commit:
@@ -25,51 +26,29 @@ jobs:
           FRAMER_URL: 'https://semat.framer.website'
         run: |
           mkdir -p exported_site
-          node <<EOF
+          node <<'EOF'
           const axios = require('axios');
-          const fs = require('fs');
+          const fs = require('fs').promises;
           const path = require('path');
 
-          axios.post('https://nocodexport.com/tools/framer-to-html', {
-            url: process.env.FRAMER_URL
-          }, {
-            responseType: 'text'
-          })
-          .then(response => {
-            const filePath = path.join(__dirname, 'exported_site', 'index.html');
-            fs.writeFileSync(filePath, response.data);
-            console.log('Main site exported successfully.');
-          })
-          .catch(error => {
-            console.error('Error exporting main site:', error);
-            process.exit(1);
-          });
-          EOF
+          const exportSite = async (url, outputPath) => {
+            try {
+              const response = await axios.post('https://nocodexport.com/tools/framer-to-html', { url }, { responseType: 'text' });
+              await fs.writeFile(outputPath, response.data);
+              console.log(`Site exported successfully: ${url}`);
+            } catch (error) {
+              console.error(`Error exporting site (${url}):`, error.message);
+              process.exit(1);
+            }
+          };
 
-      - name: Export Arabic Framer Site
-        env:
-          FRAMER_URL: 'https://semat.framer.website/ar'
-        run: |
-          mkdir -p exported_site/ar
-          node <<EOF
-          const axios = require('axios');
-          const fs = require('fs');
-          const path = require('path');
-
-          axios.post('https://nocodexport.com/tools/framer-to-html', {
-            url: process.env.FRAMER_URL
-          }, {
-            responseType: 'text'
-          })
-          .then(response => {
-            const filePath = path.join(__dirname, 'exported_site', 'ar', 'index.html');
-            fs.writeFileSync(filePath, response.data);
-            console.log('Arabic site exported successfully.');
-          })
-          .catch(error => {
-            console.error('Error exporting Arabic site:', error);
-            process.exit(1);
-          });
+          (async () => {
+            const urls = ['https://semat.framer.website', 'https://semat.framer.website/ar'];
+            for (const url of urls) {
+              const outputPath = url.endsWith('/ar') ? path.join(__dirname, 'exported_site', 'ar', 'index.html') : path.join(__dirname, 'exported_site', 'index.html');
+              await exportSite(url, outputPath);
+            }
+          })();
           EOF
 
       - name: Commit and Push Changes
