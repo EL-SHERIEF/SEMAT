@@ -1,11 +1,8 @@
 name: Export Framer Sites to HTML
 
 on:
-  push:
-    branches:
-      - main
   schedule:
-    - cron: '*/1 * * * *'  # Runs every 5 minutes
+    - cron: '*/5 * * * *'  # Runs every 5 minutes
   workflow_dispatch:  # Allows manual triggering of the workflow
 
 jobs:
@@ -16,16 +13,19 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Install HTTrack
-        run: sudo apt-get install -y httrack
+      - name: Install Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y httrack rsync
 
       - name: Export Main Framer Site
         run: |
           echo "Downloading main site..."
           httrack "https://semat.framer.website/" -O ./main_site --mirror --keep-alive --depth=2 --clean
-          # Sync the downloaded files to the repository root
+          # Copy the mirrored content into a temporary folder called site_new
+          mkdir -p site_new
           if [ -d "./main_site/semat.framer.website" ]; then
-            rsync -a ./main_site/semat.framer.website/ ./
+            rsync -a ./main_site/semat.framer.website/ site_new/
           fi
           rm -rf ./main_site
 
@@ -33,23 +33,35 @@ jobs:
         run: |
           echo "Downloading Arabic site..."
           httrack "https://semat.framer.website/ar" -O ./ar_site --mirror --keep-alive --depth=2 --clean
-          mkdir -p ./ar
-          # Sync the downloaded files to the /ar directory
+          mkdir -p site_new/ar
           if [ -d "./ar_site/semat.framer.website/ar" ]; then
-            rsync -a ./ar_site/semat.framer.website/ar/ ./ar/
+            rsync -a ./ar_site/semat.framer.website/ar/ site_new/ar/
           fi
           rm -rf ./ar_site
 
-      - name: Commit and Push Changes
+      - name: Prepare New Content
+        run: |
+          echo "Syncing new content into repository..."
+          # Update the current working tree with new content from site_new
+          rsync -a --delete site_new/ ./
+          rm -rf site_new
+
+      - name: Commit and Merge Update
         env:
           ACTIONS_PAT: ${{ secrets.ACTIONS_PAT }}
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
+          # Create a temporary branch for the update
+          git checkout -b update-site
           git add .
           if git diff --cached --quiet; then
             echo "No changes to commit."
+            exit 0
           else
             git commit -m "Automated update of exported Framer sites"
-            git push https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/${{ github.repository }}.git HEAD:main
           fi
+          # Switch back to main and merge the update atomically
+          git checkout main
+          git merge update-site --no-ff -m "Merge automated update"
+          git push https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/${{ github.repository }}.git HEAD:main
