@@ -5,90 +5,51 @@ on:
     branches:
       - main
   schedule:
-    - cron: '*/1 * * * *'  # Runs approximately every 5 minutes (minimum enforced by GitHub)
-  workflow_dispatch:
+    - cron: '*/1 * * * *'  # Runs every 5 minutes
+  workflow_dispatch:  # Allows manual triggering of the workflow
 
 jobs:
-  mirror-and-commit:
+  export-and-commit:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout the repository
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # 2. Install HTTrack and rsync
-      - name: Install Tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y httrack rsync
+      - name: Install HTTrack
+        run: sudo apt-get install -y httrack
 
-      # 3. Mirror the main Framer site into ./main_site
-      - name: Mirror Main Framer Site
+      - name: Export Main Framer Site
         run: |
           echo "Downloading main site..."
           httrack "https://semat.framer.website/" -O ./main_site --mirror --keep-alive --depth=2 --clean
+          # Sync the downloaded files to the repository root
+          if [ -d "./main_site/semat.framer.website" ]; then
+            rsync -a ./main_site/semat.framer.website/ ./
+          fi
+          rm -rf ./main_site
 
-      # 4. Mirror the Arabic Framer site into ./ar_site
-      - name: Mirror Arabic Framer Site
+      - name: Export Arabic Framer Site
         run: |
           echo "Downloading Arabic site..."
           httrack "https://semat.framer.website/ar" -O ./ar_site --mirror --keep-alive --depth=2 --clean
-
-      # 5. Assemble the new content into a staging folder (site_new)
-      - name: Prepare New Content
-        run: |
-          echo "Preparing new content in site_new..."
-          mkdir -p site_new/ar
-          if [ -d "./main_site/semat.framer.website" ]; then
-            rsync -a ./main_site/semat.framer.website/ site_new/
-          fi
+          mkdir -p ./ar
+          # Sync the downloaded files to the /ar directory
           if [ -d "./ar_site/semat.framer.website/ar" ]; then
-            rsync -a ./ar_site/semat.framer.website/ar/ site_new/ar/
+            rsync -a ./ar_site/semat.framer.website/ar/ ./ar/
           fi
-          rm -rf main_site ar_site
+          rm -rf ./ar_site
 
-      # 6. Update repository on a temporary branch (mirror-updates)
-      - name: Commit to Temporary Branch
+      - name: Commit and Push Changes
         env:
           ACTIONS_PAT: ${{ secrets.ACTIONS_PAT }}
         run: |
-          # Configure Git
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
-          
-          # Create or reset the temporary branch 'mirror-updates'
-          git checkout -B mirror-updates
-          
-          # Delete all top-level files/directories except .git, .github, and site_new
-          find . -mindepth 1 -maxdepth 1 \
-            ! -name '.git' \
-            ! -name '.github' \
-            ! -name 'site_new' \
-            -exec rm -rf {} +
-          
-          # Sync new content from site_new into the repo root, excluding .git and .github
-          rsync -a --delete --exclude='.git' --exclude='.github' site_new/ ./ || \
-            (exit_code=$?; if [ $exit_code -ne 0 ] && [ $exit_code -ne 24 ]; then exit $exit_code; fi)
-          
-          # Remove the staging folder
-          rm -rf site_new
-          
-          # Stage and commit if there are changes
           git add .
           if git diff --cached --quiet; then
-            echo "No changes to commit on mirror-updates."
-            exit 0
+            echo "No changes to commit."
           else
             git commit -m "Automated update of exported Framer sites"
+            git push https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/${{ github.repository }}.git HEAD:main
           fi
-
-      # 7. Merge the temporary branch into main atomically and push
-      - name: Merge into Main and Push
-        env:
-          ACTIONS_PAT: ${{ secrets.ACTIONS_PAT }}
-        run: |
-          git checkout main
-          git pull origin main --rebase
-          git merge mirror-updates --no-ff -m "Merge automated mirror update"
-          git push https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/${{ github.repository }}.git HEAD:main
