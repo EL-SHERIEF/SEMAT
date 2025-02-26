@@ -2,7 +2,7 @@ name: Export Framer Sites to HTML
 
 on:
   schedule:
-    - cron: '*/1 * * * *'  # Runs every 5 minutes
+    - cron: '*/5 * * * *'  # Runs every 5 minutes
   workflow_dispatch:
 
 jobs:
@@ -10,50 +10,48 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1) Check out your repository
+      # 1) Check out the repository
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # 2) Install HTTrack & rsync
+      # 2) Install necessary tools (HTTrack and rsync)
       - name: Install Tools
         run: |
           sudo apt-get update
           sudo apt-get install -y httrack rsync
 
-      # 3) Mirror main site into `main_site`
+      # 3) Mirror the main Framer site into ./main_site
       - name: Mirror Main Framer Site
         run: |
           echo "Downloading main site..."
-          httrack "https://semat.framer.website/" \
-            -O ./main_site --mirror --keep-alive --depth=2 --clean
+          httrack "https://semat.framer.website/" -O ./main_site --mirror --keep-alive --depth=2 --clean
 
-      # 4) Mirror Arabic site into `ar_site`
+      # 4) Mirror the Arabic Framer site into ./ar_site
       - name: Mirror Arabic Framer Site
         run: |
           echo "Downloading Arabic site..."
-          httrack "https://semat.framer.website/ar" \
-            -O ./ar_site --mirror --keep-alive --depth=2 --clean
+          httrack "https://semat.framer.website/ar" -O ./ar_site --mirror --keep-alive --depth=2 --clean
 
-      # 5) Combine mirrored content into `site_new`
+      # 5) Assemble the mirrored content into a staging folder "site_new"
       - name: Prepare New Content
         run: |
           echo "Preparing new content in site_new..."
           mkdir -p site_new/ar
 
-          # If main site was mirrored
+          # Copy main site files (if mirrored folder exists)
           if [ -d "./main_site/semat.framer.website" ]; then
             rsync -a ./main_site/semat.framer.website/ site_new/
           fi
 
-          # If Arabic site was mirrored
+          # Copy Arabic site files (if mirrored folder exists)
           if [ -d "./ar_site/semat.framer.website/ar" ]; then
             rsync -a ./ar_site/semat.framer.website/ar/ site_new/ar/
           fi
 
-          # Cleanup
+          # Clean up temporary mirror folders
           rm -rf main_site ar_site
 
-      # 6) Create/Reset a temporary branch, preserve .git
+      # 6) Switch to a temporary branch, delete old website files, and sync new content
       - name: Commit to Temporary Branch
         env:
           ACTIONS_PAT: ${{ secrets.ACTIONS_PAT }}
@@ -62,32 +60,23 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
 
-          # Switch to (or create/reset) a branch called mirror-updates
+          # Create or reset the temporary branch "mirror-updates"
           git checkout -B mirror-updates
 
-          # Remove old site files except .git, .github, site_new
+          # Delete all top-level files and directories except .git and .github
           find . -mindepth 1 -maxdepth 1 \
             ! -name '.git' \
             ! -name '.github' \
             ! -name 'site_new' \
             -exec rm -rf {} +
 
-          # Sync new content from site_new/ into root
-          # Exclude .git so it doesn't get removed
-          rsync -a --delete \
-            --exclude '.git' \
-            --exclude '.github' \
-            site_new/ ./ || \
-            if [ $? -eq 24 ]; then
-              echo "Ignoring vanished files (rsync exit code 24)."
-            else
-              exit $?
-            fi
-
+          # Copy new content from site_new into the repo root (preserving .git and .github)
+          rsync -a --delete --exclude='.git' --exclude='.github' site_new/ ./
+          
           # Remove the staging folder
           rm -rf site_new
 
-          # Stage & commit if changes
+          # Stage all changes and commit if there are any updates
           git add .
           if git diff --cached --quiet; then
             echo "No changes to commit on mirror-updates."
@@ -96,16 +85,12 @@ jobs:
             git commit -m "Automated mirror update"
           fi
 
-      # 7) Merge mirror-updates into main, push
+      # 7) Merge the temporary branch into main and push atomically
       - name: Merge into Main
         env:
           ACTIONS_PAT: ${{ secrets.ACTIONS_PAT }}
         run: |
           git checkout main
           git pull origin main
-
-          # Merge changes from mirror-updates
           git merge mirror-updates --no-ff -m "Merge mirrored site updates"
-
-          # Push final state
           git push https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/${{ github.repository }}.git HEAD:main
