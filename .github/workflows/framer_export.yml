@@ -3,65 +3,105 @@ name: Export Framer Sites to HTML
 on:
   schedule:
     - cron: '*/5 * * * *'  # Runs every 5 minutes
-  workflow_dispatch:  # Allows manual triggering of the workflow
+  workflow_dispatch:
 
 jobs:
-  export-and-commit:
+  mirror-and-commit:
     runs-on: ubuntu-latest
 
     steps:
+      # 1) Check out your repository
       - name: Checkout Repository
         uses: actions/checkout@v3
 
+      # 2) Install tools (HTTrack + rsync)
       - name: Install Tools
         run: |
           sudo apt-get update
           sudo apt-get install -y httrack rsync
 
-      - name: Export Main Framer Site
+      # 3) Mirror the main site
+      - name: Mirror Main Framer Site
         run: |
           echo "Downloading main site..."
-          httrack "https://semat.framer.website/" -O ./main_site --mirror --keep-alive --depth=2 --clean
-          # Copy the mirrored content into a temporary folder called site_new
-          mkdir -p site_new
+          httrack "https://semat.framer.website/" \
+            -O ./main_site --mirror --keep-alive --depth=2 --clean
+
+      # 4) Mirror the Arabic site
+      - name: Mirror Arabic Framer Site
+        run: |
+          echo "Downloading Arabic site..."
+          httrack "https://semat.framer.website/ar" \
+            -O ./ar_site --mirror --keep-alive --depth=2 --clean
+
+      # 5) Assemble mirrored files into a staging folder "site_new"
+      - name: Prepare New Content
+        run: |
+          echo "Preparing new content in site_new..."
+          mkdir -p site_new/ar
+
+          # If main site folder was mirrored
           if [ -d "./main_site/semat.framer.website" ]; then
             rsync -a ./main_site/semat.framer.website/ site_new/
           fi
-          rm -rf ./main_site
 
-      - name: Export Arabic Framer Site
-        run: |
-          echo "Downloading Arabic site..."
-          httrack "https://semat.framer.website/ar" -O ./ar_site --mirror --keep-alive --depth=2 --clean
-          mkdir -p site_new/ar
+          # If Arabic site folder was mirrored
           if [ -d "./ar_site/semat.framer.website/ar" ]; then
             rsync -a ./ar_site/semat.framer.website/ar/ site_new/ar/
           fi
-          rm -rf ./ar_site
 
-      - name: Prepare New Content
-        run: |
-          echo "Syncing new content into repository..."
-          # Update the current working tree with new content from site_new
-          rsync -a --delete site_new/ ./
-          rm -rf site_new
+          # Clean up the temporary mirror folders
+          rm -rf main_site ar_site
 
-      - name: Commit and Merge Update
+      # 6) Switch to a temporary branch and sync new content
+      - name: Commit to Temporary Branch
         env:
           ACTIONS_PAT: ${{ secrets.ACTIONS_PAT }}
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
-          # Create a temporary branch for the update
-          git checkout -b update-site
+
+          # Create or reset a temporary branch for the mirror updates
+          git checkout -B mirror-updates
+
+          # Remove old site files (except .git, .github, or anything else you want to keep)
+          find . -mindepth 1 -maxdepth 1 \
+            ! -name '.git' \
+            ! -name '.github' \
+            ! -name 'site_new' \
+            -exec rm -rf {} +
+
+          # Now rsync from site_new/ to the repo root
+          # We'll ignore "vanished file" errors (exit code 24) by capturing the code and checking it
+          rsync -a --delete site_new/ ./ || \
+            if [ $? -eq 24 ]; then \
+              echo "Ignoring vanished files (rsync exit code 24)."; \
+            else \
+              exit $?; \
+            fi
+
+          rm -rf site_new
+
+          # Stage and commit if changes exist
           git add .
           if git diff --cached --quiet; then
-            echo "No changes to commit."
+            echo "No changes to commit on mirror-updates."
             exit 0
           else
-            git commit -m "Automated update of exported Framer sites"
+            git commit -m "Automated mirror update"
           fi
-          # Switch back to main and merge the update atomically
+
+      # 7) Merge the temporary branch into main atomically
+      - name: Merge into Main
+        env:
+          ACTIONS_PAT: ${{ secrets.ACTIONS_PAT }}
+        run: |
+          # Make sure main is up to date
           git checkout main
-          git merge update-site --no-ff -m "Merge automated update"
+          git pull origin main
+
+          # Merge mirror-updates into main (atomic single commit)
+          git merge mirror-updates --no-ff -m "Merge mirrored site updates"
+
+          # Push final state of main
           git push https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/${{ github.repository }}.git HEAD:main
