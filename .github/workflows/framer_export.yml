@@ -5,7 +5,7 @@ on:
     branches:
       - main
   schedule:
-    - cron: '*/40 * * * *'  # Runs every 40 minutes
+    - cron: '*/40 * * * *'  # Runs every 5 minutes
   workflow_dispatch:  # Allows manual triggering of the workflow
 
 jobs:
@@ -19,19 +19,19 @@ jobs:
       - name: Install HTTrack
         run: sudo apt-get install -y httrack
 
-      - name: Export Arabic Framer Site (Now the Main Site)
+      - name: Export Main Framer Site
         run: |
-          echo "Downloading Arabic site as main..."
-          httrack "https://semat.framer.website/ar" -O ./ar_site --mirror --keep-alive --depth=2 --clean
+          echo "Downloading main site..."
+          httrack "https://semat.framer.website/ar" -O ./main_site --mirror --keep-alive --depth=2 --clean
           # Sync the downloaded files to the repository root
-          if [ -d "./ar_site/semat.framer.website/ar" ]; then
-            rsync -a ./ar_site/semat.framer.website/ar/ ./  # Root directory
+          if [ -d "./main_site/semat.framer.website/ar" ]; then
+            rsync -a ./main_site/semat.framer.website/ar/ ./  # Arabic is now the main site
           fi
-          rm -rf ./ar_site
+          rm -rf ./main_site
 
-      - name: Export English Framer Site (Now in /en)
+      - name: Export English Framer Site
         run: |
-          echo "Downloading English site as /en..."
+          echo "Downloading English site..."
           httrack "https://semat.framer.website/" -O ./en_site --mirror --keep-alive --depth=2 --clean
           mkdir -p ./en
           # Sync the downloaded files to the /en directory
@@ -50,5 +50,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "Automated update of exported Framer sites (Arabic as main, English as /en)"
+            git commit -m "Automated update of exported Framer sites"
             git push https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/${{ github.repository }}.git HEAD:main
+          fi
