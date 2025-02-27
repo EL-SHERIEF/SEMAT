@@ -21,8 +21,8 @@ jobs:
 
       - name: Export Main Framer Site
         run: |
-          echo "Downloading main site..."
-          httrack "https://semat.framer.website/" -O ./main_site --mirror --keep-alive --depth=2 --clean
+          echo "Downloading main site... in arabic"
+          httrack "https://semat.framer.website/ar" -O ./main_site --mirror --keep-alive --depth=2 --clean
           # Sync the downloaded files to the repository root
           if [ -d "./main_site/semat.framer.website" ]; then
             rsync -a ./main_site/semat.framer.website/ ./
@@ -32,13 +32,13 @@ jobs:
       - name: Export Arabic Framer Site
         run: |
           echo "Downloading Arabic site..."
-          httrack "https://semat.framer.website/ar" -O ./ar_site --mirror --keep-alive --depth=2 --clean
-          mkdir -p ./ar
-          # Sync the downloaded files to the /ar directory
-          if [ -d "./ar_site/semat.framer.website/ar" ]; then
-            rsync -a ./ar_site/semat.framer.website/ar/ ./ar/
+          httrack "https://semat.framer.website/" -O ./en_site --mirror --keep-alive --depth=2 --clean
+          mkdir -p ./en
+          # Sync the downloaded files to the /en directory
+          if [ -d "./en_site/semat.framer.website/en" ]; then
+            rsync -a ./en_site/semat.framer.website/en/ ./en/
           fi
-          rm -rf ./ar_site
+          rm -rf ./en_site
 
       - name: Commit and Push Changes
         env:
