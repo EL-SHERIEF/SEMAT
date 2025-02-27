@@ -5,7 +5,7 @@ on:
     branches:
       - main
   schedule:
-    - cron: '*/40 * * * *'  # Runs every 5 minutes
+    - cron: '*/40 * * * *'  # Runs every 40 minutes
   workflow_dispatch:  # Allows manual triggering of the workflow
 
 jobs:
@@ -19,24 +19,24 @@ jobs:
       - name: Install HTTrack
         run: sudo apt-get install -y httrack
 
-      - name: Export Main Framer Site
+      - name: Export Arabic Framer Site (Now the Main Site)
         run: |
-          echo "Downloading main site... in arabic"
-          httrack "https://semat.framer.website/ar" -O ./main_site --mirror --keep-alive --depth=2 --clean
+          echo "Downloading Arabic site as main..."
+          httrack "https://semat.framer.website/ar" -O ./ar_site --mirror --keep-alive --depth=2 --clean
           # Sync the downloaded files to the repository root
-          if [ -d "./main_site/semat.framer.website" ]; then
-            rsync -a ./main_site/semat.framer.website/ ./
+          if [ -d "./ar_site/semat.framer.website/ar" ]; then
+            rsync -a ./ar_site/semat.framer.website/ar/ ./  # Root directory
           fi
-          rm -rf ./main_site
+          rm -rf ./ar_site
 
-      - name: Export Arabic Framer Site
+      - name: Export English Framer Site (Now in /en)
         run: |
-          echo "Downloading Arabic site..."
+          echo "Downloading English site as /en..."
           httrack "https://semat.framer.website/" -O ./en_site --mirror --keep-alive --depth=2 --clean
           mkdir -p ./en
           # Sync the downloaded files to the /en directory
-          if [ -d "./en_site/semat.framer.website/en" ]; then
-            rsync -a ./en_site/semat.framer.website/en/ ./en/
+          if [ -d "./en_site/semat.framer.website" ]; then
+            rsync -a ./en_site/semat.framer.website/ ./en/
           fi
           rm -rf ./en_site
 
@@ -50,6 +50,5 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "Automated update of exported Framer sites"
+            git commit -m "Automated update of exported Framer sites (Arabic as main, English as /en)"
             git push https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/${{ github.repository }}.git HEAD:main
-          fi
