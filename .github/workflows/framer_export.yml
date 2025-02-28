@@ -98,59 +98,68 @@ jobs:
       - name: Ping Search Engines and RSS Aggregators
         run: |
           echo "Pinging search engines and RSS aggregators (Google ping deprecated)..."
-          # Bing
+
+          # Track failures
+          FAILURES=0
+
+          # Bing (covers Yahoo as well)
           if curl -s "http://www.bing.com/ping?sitemap=https://semat.agency/sitemap.xml"; then
-            echo "Bing ping for sitemap.xml successful"
+            echo "Bing (and Yahoo) ping for sitemap.xml successful"
           else
-            echo "Bing ping for sitemap.xml failed" >&2
-            exit 1
+            echo "Bing (and Yahoo) ping for sitemap.xml failed" >&2
+            echo "Error details: $(curl -s -o /dev/null -w '%{http_code}' 'http://www.bing.com/ping?sitemap=https://semat.agency/sitemap.xml')" >&2
+            FAILURES=$((FAILURES + 1))
           fi
           if curl -s "http://www.bing.com/ping?sitemap=https://semat.agency/en/sitemap.xml"; then
-            echo "Bing ping for en/sitemap.xml successful"
+            echo "Bing (and Yahoo) ping for en/sitemap.xml successful"
           else
-            echo "Bing ping for en/sitemap.xml failed" >&2
-            exit 1
+            echo "Bing (and Yahoo) ping for en/sitemap.xml failed" >&2
+            echo "Error details: $(curl -s -o /dev/null -w '%{http_code}' 'http://www.bing.com/ping?sitemap=https://semat.agency/en/sitemap.xml')" >&2
+            FAILURES=$((FAILURES + 1))
           fi
-          # Yahoo (via Bing)
-          if curl -s "http://www.bing.com/ping?sitemap=https://semat.agency/sitemap.xml"; then
-            echo "Yahoo (Bing) ping for sitemap.xml successful"
-          else
-            echo "Yahoo (Bing) ping for sitemap.xml failed" >&2
-            exit 1
-          fi
-          if curl -s "http://www.bing.com/ping?sitemap=https://semat.agency/en/sitemap.xml"; then
-            echo "Yahoo (Bing) ping for en/sitemap.xml successful"
-          else
-            echo "Yahoo (Bing) ping for en/sitemap.xml failed" >&2
-            exit 1
-          fi
+
           # Yandex
           if curl -s "http://ping.blogs.yandex.ru/ping?sitemap=https://semat.agency/sitemap.xml"; then
             echo "Yandex ping for sitemap.xml successful"
           else
             echo "Yandex ping for sitemap.xml failed" >&2
-            exit 1
+            echo "Error details: $(curl -s -o /dev/null -w '%{http_code}' 'http://ping.blogs.yandex.ru/ping?sitemap=https://semat.agency/sitemap.xml')" >&2
+            FAILURES=$((FAILURES + 1))
           fi
           if curl -s "http://ping.blogs.yandex.ru/ping?sitemap=https://semat.agency/en/sitemap.xml"; then
             echo "Yandex ping for en/sitemap.xml successful"
           else
             echo "Yandex ping for en/sitemap.xml failed" >&2
-            exit 1
+            echo "Error details: $(curl -s -o /dev/null -w '%{http_code}' 'http://ping.blogs.yandex.ru/ping?sitemap=https://semat.agency/en/sitemap.xml')" >&2
+            FAILURES=$((FAILURES + 1))
           fi
+
           # RSS pings
           if curl -s "http://ping.feedburner.com/ping?url=https://semat.agency/rss.xml"; then
             echo "Feedburner RSS ping successful"
           else
             echo "Feedburner RSS ping failed" >&2
-            exit 1
+            echo "Error details: $(curl -s -o /dev/null -w '%{http_code}' 'http://ping.feedburner.com/ping?url=https://semat.agency/rss.xml')" >&2
+            FAILURES=$((FAILURES + 1))
           fi
           if curl -s "http://rpc.pingomatic.com/?url=https://semat.agency/rss.xml"; then
             echo "Pingomatic RSS ping successful"
           else
             echo "Pingomatic RSS ping failed" >&2
-            exit 1
+            echo "Error details: $(curl -s -o /dev/null -w '%{http_code}' 'http://rpc.pingomatic.com/?url=https://semat.agency/rss.xml')" >&2
+            FAILURES=$((FAILURES + 1))
           fi
-          echo "Ping requests sent successfully."
+
+          # Final status
+          if [ $FAILURES -eq 0 ]; then
+            echo "All ping requests sent successfully."
+          else
+            echo "Completed with $FAILURES ping failures." >&2
+            # Exit with failure only if more than half fail (3 out of 6)
+            if [ $FAILURES -ge 3 ]; then
+              exit 1
+            fi
+          fi
 
       - name: Commit and Push Changes
         env:
