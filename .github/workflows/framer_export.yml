@@ -24,7 +24,7 @@ jobs:
           echo "Downloading Arabic site..."
           httrack "https://semat.framer.website/ar" -O ./main_site --mirror --keep-alive --depth=2 --clean
           if [ -d "./main_site/semat.framer.website/ar" ]; then
-            rsync -a --exclude 'ar' ./main_site/semat.framer.website/ar/ ./
+            rsync -a ./main_site/semat.framer.website/ar/ ./
           fi
           rm -rf ./main_site
 
@@ -63,19 +63,12 @@ jobs:
           done
           echo '</urlset>' >> en/sitemap.xml
 
-          # Robots.txt for root
+          # Robots.txt for root (consolidated)
           echo "User-agent: *" > robots.txt
           echo "Allow: /" >> robots.txt
-          echo "Disallow: /en/" >> robots.txt
           echo "Allow: /crawl-me/" >> robots.txt
           echo "Sitemap: https://semat.agency/sitemap.xml" >> robots.txt
-
-          # Robots.txt for /en
-          echo "User-agent: *" > en/robots.txt
-          echo "Allow: /en/" >> en/robots.txt
-          echo "Disallow: /" >> en/robots.txt
-          echo "Allow: /crawl-me/" >> en/robots.txt
-          echo "Sitemap: https://semat.agency/en/sitemap.xml" >> en/robots.txt
+          echo "Sitemap: https://semat.agency/en/sitemap.xml" >> robots.txt
 
           # Crawler trap in /crawl-me
           mkdir -p crawl-me
