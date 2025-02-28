@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Allow: /crawl-me/
+Sitemap: https://semat.agency/sitemap.xml
+Sitemap: https://semat.agency/en/sitemap.xml
