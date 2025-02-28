@@ -106,17 +106,57 @@ jobs:
         run: |
           echo "Pinging search engines and RSS aggregators (Google ping deprecated)..."
           # Bing
-          curl -s "http://www.bing.com/ping?sitemap=https://semat.agency/sitemap.xml"
-          curl -s "http://www.bing.com/ping?sitemap=https://semat.agency/en/sitemap.xml"
+          if curl -s "http://www.bing.com/ping?sitemap=https://semat.agency/sitemap.xml"; then
+            echo "Bing ping for sitemap.xml successful"
+          else
+            echo "Bing ping for sitemap.xml failed" >&2
+            exit 1
+          fi
+          if curl -s "http://www.bing.com/ping?sitemap=https://semat.agency/en/sitemap.xml"; then
+            echo "Bing ping for en/sitemap.xml successful"
+          else
+            echo "Bing ping for en/sitemap.xml failed" >&2
+            exit 1
+          fi
           # Yahoo (via Bing)
-          curl -s "http://www.bing.com/ping?sitemap=https://semat.agency/sitemap.xml"
-          curl -s "http://www.bing.com/ping?sitemap=https://semat.agency/en/sitemap.xml"
+          if curl -s "http://www.bing.com/ping?sitemap=https://semat.agency/sitemap.xml"; then
+            echo "Yahoo (Bing) ping for sitemap.xml successful"
+          else
+            echo "Yahoo (Bing) ping for sitemap.xml failed" >&2
+            exit 1
+          fi
+          if curl -s "http://www.bing.com/ping?sitemap=https://semat.agency/en/sitemap.xml"; then
+            echo "Yahoo (Bing) ping for en/sitemap.xml successful"
+          else
+            echo "Yahoo (Bing) ping for en/sitemap.xml failed" >&2
+            exit 1
+          fi
           # Yandex
-          curl -s "http://ping.blogs.yandex.ru/ping?sitemap=https://semat.agency/sitemap.xml"
-          curl -s "http://ping.blogs.yandex.ru/ping?sitemap=https://semat.agency/en/sitemap.xml"
+          if curl -s "http://ping.blogs.yandex.ru/ping?sitemap=https://semat.agency/sitemap.xml"; then
+            echo "Yandex ping for sitemap.xml successful"
+          else
+            echo "Yandex ping for sitemap.xml failed" >&2
+            exit 1
+          fi
+          if curl -s "http://ping.blogs.yandex.ru/ping?sitemap=https://semat.agency/en/sitemap.xml"; then
+            echo "Yandex ping for en/sitemap.xml successful"
+          else
+            echo "Yandex ping for en/sitemap.xml failed" >&2
+            exit 1
+          fi
           # RSS pings
-          curl -s "http://ping.feedburner.com/ping?url=https://semat.agency/rss.xml"
-          curl -s "http://rpc.pingomatic.com/?url=https://semat.agency/rss.xml"
+          if curl -s "http://ping.feedburner.com/ping?url=https://semat.agency/rss.xml"; then
+            echo "Feedburner RSS ping successful"
+          else
+            echo "Feedburner RSS ping failed" >&2
+            exit 1
+          fi
+          if curl -s "http://rpc.pingomatic.com/?url=https://semat.agency/rss.xml"; then
+            echo "Pingomatic RSS ping successful"
+          else
+            echo "Pingomatic RSS ping failed" >&2
+            exit 1
+          fi
           echo "Ping requests sent successfully."
 
       - name: Commit and Push Changes
