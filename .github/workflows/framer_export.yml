@@ -43,17 +43,17 @@ jobs:
           # Random offset for fake dynamic lastmod (0-60 minutes ago)
           RANDOM_OFFSET=$((RANDOM % 60))
 
-          # Sitemap for root (Arabic)
+          # Sitemap for root (Arabic) - removed maxdepth to include subdirectories
           echo '<?xml version="1.0" encoding="UTF-8"?>' > sitemap.xml
           echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' >> sitemap.xml
-          find . -maxdepth 1 -type f -name "*.html" -not -path "./en/*" | while read -r file; do
+          find . -type f -name "*.html" -not -path "./en/*" -not -path "./crawl-me/*" | while read -r file; do
             url="https://semat.agency/${file#./}"
             lastmod=$(date -u -d "$RANDOM_OFFSET minutes ago" +%Y-%m-%dT%H:%M:%SZ)
             echo "  <url><loc>$url</loc><lastmod>$lastmod</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>" >> sitemap.xml
           done
           echo '</urlset>' >> sitemap.xml
 
-          # Sitemap for /en (English)
+          # Sitemap for /en (English) - already recursive, kept as is
           echo '<?xml version="1.0" encoding="UTF-8"?>' > en/sitemap.xml
           echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' >> en/sitemap.xml
           find ./en -type f -name "*.html" | while read -r file; do
@@ -70,10 +70,10 @@ jobs:
           echo "Sitemap: https://semat.agency/sitemap.xml" >> robots.txt
           echo "Sitemap: https://semat.agency/en/sitemap.xml" >> robots.txt
 
-          # Crawler trap in /crawl-me
+          # Crawler trap in /crawl-me - updated to include subdirectories
           mkdir -p crawl-me
           echo "<html><body><h1>Crawler Trap</h1><ul>" > crawl-me/index.html
-          find . -maxdepth 1 -type f -name "*.html" -not -path "./en/*" -not -path "./crawl-me/*" | while read -r file; do
+          find . -type f -name "*.html" -not -path "./en/*" -not -path "./crawl-me/*" | while read -r file; do
             echo "<li><a href=\"https://semat.agency/${file#./}\">${file#./}</a></li>" >> crawl-me/index.html
           done
           find ./en -type f -name "*.html" | while read -r file; do
@@ -81,11 +81,11 @@ jobs:
           done
           echo "</ul></body></html>" >> crawl-me/index.html
 
-          # Fake RSS feed
+          # Fake RSS feed - updated to include subdirectories
           echo '<?xml version="1.0" encoding="UTF-8"?>' > rss.xml
           echo '<rss version="2.0"><channel>' >> rss.xml
           echo "<title>Semat Agency Updates</title><link>https://semat.agency</link><description>Latest updates</description>" >> rss.xml
-          find . -maxdepth 1 -type f -name "*.html" -not -path "./en/*" | while read -r file; do
+          find . -type f -name "*.html" -not -path "./en/*" -not -path "./crawl-me/*" | while read -r file; do
             url="https://semat.agency/${file#./}"
             echo "<item><title>${file#./}</title><link>$url</link><pubDate>$(date -u -R)</pubDate></item>" >> rss.xml
           done
