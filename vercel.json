@@ -1,1 +1,1 @@
-{"rewrites": [{"source": "/:path*", "destination": "/index.html"}]}
+{"rewrites": [{"source": "/:path*", "destination": "/index.html"}], "redirects": [{"source": "/:path*", "has": [{"type": "host", "value": "www.semat.agency"}], "destination": "https://semat.agency/:path*", "permanent": true}]}
