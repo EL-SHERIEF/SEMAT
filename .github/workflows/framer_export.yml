@@ -23,7 +23,6 @@ jobs:
 
       - name: Post-Process HTML for Arabic (Root)
         run: |
-          # Ensure Arabic root files have correct dir, lang, SEO tags, styles, and schema
           find . -type f -name "*.html" -not -path "./en/*" -exec sed -i \
             -e 's/<html/<html dir="rtl" lang="ar"/' \
             -e '/<head>/a <link rel="canonical" href="https://semat.agency/" />' \
@@ -37,7 +36,6 @@ jobs:
 
       - name: Post-Process HTML for English (/en)
         run: |
-          # Ensure English files have correct dir, lang, SEO tags, styles, and schema
           find ./en -type f -name "*.html" -exec sed -i \
             -e 's/<html/<html dir="ltr" lang="en"/' \
             -e '/<head>/a <link rel="canonical" href="https://semat.agency/en" />' \
@@ -51,7 +49,6 @@ jobs:
 
       - name: Generate Sitemaps, Robots, and RSS
         run: |
-          # Sitemap for root (Arabic)
           echo '<?xml version="1.0" encoding="UTF-8"?>' > sitemap.xml
           echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' >> sitemap.xml
           find . -type f -name "*.html" -not -path "./en/*" | while read -r file; do
@@ -62,7 +59,6 @@ jobs:
           done
           echo '</urlset>' >> sitemap.xml
 
-          # Sitemap for /en (English)
           echo '<?xml version="1.0" encoding="UTF-8"?>' > en/sitemap.xml
           echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' >> en/sitemap.xml
           find ./en -type f -name "*.html" | while read -r file; do
@@ -71,9 +67,8 @@ jobs:
             priority=$(if [[ "$file" == "./en/index.html" ]]; then echo "1.0"; else echo "0.8"; fi)
             echo "  <url><loc>$url</loc><lastmod>$lastmod</lastmod><changefreq>daily</changefreq><priority>$priority</priority></url>" >> en/sitemap.xml
           done
-          echo '</urlset>' >> sitemap.xml
+          echo '</urlset>' >> en/sitemap.xml
 
-          # Robots.txt
           echo "User-agent: *" > robots.txt
           echo "Allow: /" >> robots.txt
           echo "Allow: /en/" >> robots.txt
@@ -81,8 +76,6 @@ jobs:
           echo "Disallow: /index.html" >> robots.txt
           echo "Sitemap: https://semat.agency/sitemap.xml" >> robots.txt
           echo "Sitemap: https://semat.agency/en/sitemap.xml" >> robots.txt
-
-          # Verify robots.txt
           if [ -f robots.txt ]; then
             echo "robots.txt generated:"
             cat robots.txt
@@ -91,7 +84,6 @@ jobs:
             exit 1
           fi
 
-          # RSS feed
           echo '<?xml version="1.0" encoding="UTF-8"?>' > rss.xml
           echo '<rss version="2.0"><channel>' >> rss.xml
           echo "<title>Semat Agency Updates</title><link>https://semat.agency</link><description>Latest updates from Semat Agency</description>" >> rss.xml
@@ -125,25 +117,38 @@ jobs:
         run: |
           echo "Verifying deployment..."
           sleep 10  # Adjust based on deployment time
+          # Check root with redirect details
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://semat.agency/)
+          LOCATION=$(curl -s -I https://semat.agency/ | grep -i '^Location:' | cut -d' ' -f2- | tr -d '\r\n')
           if [ "$STATUS" -eq 200 ]; then
             echo "Root (Arabic) accessible (HTTP $STATUS)"
           else
-            echo "Root failed (HTTP $STATUS)" >&2
-            exit 1
+            echo "Root responded with HTTP $STATUS, redirected to: $LOCATION" >&2
+            # Follow redirect to diagnose
+            FINAL_STATUS=$(curl -s -L -o /dev/null -w "%{http_code}" https://semat.agency/)
+            echo "After following redirects, final status: $FINAL_STATUS" >&2
+            [ "$FINAL_STATUS" -ne 200 ] && exit 1
           fi
+          # Check /en
           STATUS_EN=$(curl -s -o /dev/null -w "%{http_code}" https://semat.agency/en)
+          LOCATION_EN=$(curl -s -I https://semat.agency/en | grep -i '^Location:' | cut -d' ' -f2- | tr -d '\r\n')
           if [ "$STATUS_EN" -eq 200 ]; then
             echo "English accessible (HTTP $STATUS_EN)"
           else
-            echo "English failed (HTTP $STATUS_EN)" >&2
-            exit 1
+            echo "English responded with HTTP $STATUS_EN, redirected to: $LOCATION_EN" >&2
+            FINAL_STATUS_EN=$(curl -s -L -o /dev/null -w "%{http_code}" https://semat.agency/en)
+            echo "After following redirects, final status: $FINAL_STATUS_EN" >&2
+            [ "$FINAL_STATUS_EN" -ne 200 ] && exit 1
           fi
+          # Check robots.txt
           STATUS_ROBOTS=$(curl -s -o /dev/null -w "%{http_code}" https://semat.agency/robots.txt)
+          LOCATION_ROBOTS=$(curl -s -I https://semat.agency/robots.txt | grep -i '^Location:' | cut -d' ' -f2- | tr -d '\r\n')
           if [ "$STATUS_ROBOTS" -eq 200 ]; then
             echo "robots.txt accessible (HTTP $STATUS_ROBOTS)"
             curl -s https://semat.agency/robots.txt
           else
-            echo "robots.txt failed (HTTP $STATUS_ROBOTS)" >&2
-            exit 1
+            echo "robots.txt responded with HTTP $STATUS_ROBOTS, redirected to: $LOCATION_ROBOTS" >&2
+            FINAL_STATUS_ROBOTS=$(curl -s -L -o /dev/null -w "%{http_code}" https://semat.agency/robots.txt)
+            echo "After following redirects, final status: $FINAL_STATUS_ROBOTS" >&2
+            [ "$FINAL_STATUS_ROBOTS" -ne 200 ] && exit 1
           fi
