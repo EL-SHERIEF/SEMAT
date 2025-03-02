@@ -1,4 +1,4 @@
-name: Export Framer Sites to HTML
+name: Maintain Semat Agency Site
 
 on:
   push:
@@ -6,10 +6,10 @@ on:
       - main
   schedule:
     - cron: '0 */8 * * *'  # Runs every 8 hours
-  workflow_dispatch:  # Allows manual triggering
+  workflow_dispatch:
 
 jobs:
-  export-and-commit:
+  update-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -18,45 +18,45 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install HTTrack and Dependencies
-        run: sudo apt-get update && sudo apt-get install -y httrack python3 curl
+      - name: Install Dependencies
+        run: sudo apt-get update && sudo apt-get install -y python3 curl
 
-      - name: Export Arabic Framer Site (Main Site)
+      - name: Post-Process HTML for Arabic (Root)
         run: |
-          echo "Downloading Arabic site..."
-          httrack "https://semat.framer.website/ar" -O ./main_site --mirror --keep-alive --depth=2 --clean -%v
-          if [ -d "./main_site/semat.framer.website/ar" ]; then
-            rsync -a ./main_site/semat.framer.website/ar/ ./
-          else
-            echo "Arabic site export failed" >&2
-            exit 1
-          fi
-          rm -rf ./main_site
+          # Ensure Arabic root files have correct dir, lang, SEO tags, styles, and schema
+          find . -type f -name "*.html" -not -path "./en/*" -exec sed -i \
+            -e 's/<html/<html dir="rtl" lang="ar"/' \
+            -e '/<head>/a <link rel="canonical" href="https://semat.agency/" />' \
+            -e '/<head>/a <link rel="alternate" hreflang="ar-SA" href="https://semat.agency/" />' \
+            -e '/<head>/a <link rel="alternate" hreflang="ar" href="https://semat.agency/" />' \
+            -e '/<head>/a <link rel="alternate" hreflang="en" href="https://semat.agency/en" />' \
+            -e '/<head>/a <link rel="alternate" hreflang="x-default" href="https://semat.agency/" />' \
+            -e '/<head>/a <style>body { direction: rtl; text-align: right; overflow-x: hidden; margin: 0; padding: 0; } #__framer-badge-container, .framer-nm3c8g { display: none !important; } [data-framer-component] { direction: rtl !important; } .framer-text.framer-image { border-radius: 20px !important; max-height: 500px !important; object-fit: cover !important; }<\/style>' \
+            -e '/<head>/a <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"Semat Agency","description":"Semat Agency provides IT solutions, digital marketing, and custom software development for businesses in Saudi Arabia.","url":"https://semat.agency/index.html","address":{"@type":"PostalAddress","streetAddress":"123 Business Street","addressLocality":"Riyadh","addressRegion":"Riyadh Province","addressCountry":"SA","postalCode":"12345"},"telephone":"+966-50-361-7701","openingHours":"Mo-Fr 09:00-17:00","geo":{"@type":"GeoCoordinates","latitude":"24.7136","longitude":"46.6753"},"sameAs":["https://semat.agency/servieces.html","https://semat.agency/solutions.html","https://semat.agency/contact-us.html"]}<\/script>' \
+            {} \;
 
-      - name: Export English Framer Site
+      - name: Post-Process HTML for English (/en)
         run: |
-          echo "Downloading English site..."
-          httrack "https://semat.framer.website/" -O ./en_site --mirror --keep-alive --depth=2 --clean -%v
-          mkdir -p ./en
-          if [ -d "./en_site/semat.framer.website" ]; then
-            rsync -a --exclude 'ar' ./en_site/semat.framer.website/ ./en/
-          else
-            echo "English site export failed" >&2
-            exit 1
-          fi
-          rm -rf ./en_site
+          # Ensure English files have correct dir, lang, SEO tags, styles, and schema
+          find ./en -type f -name "*.html" -exec sed -i \
+            -e 's/<html/<html dir="ltr" lang="en"/' \
+            -e '/<head>/a <link rel="canonical" href="https://semat.agency/en" />' \
+            -e '/<head>/a <link rel="alternate" hreflang="ar-SA" href="https://semat.agency/" />' \
+            -e '/<head>/a <link rel="alternate" hreflang="ar" href="https://semat.agency/" />' \
+            -e '/<head>/a <link rel="alternate" hreflang="en" href="https://semat.agency/en" />' \
+            -e '/<head>/a <link rel="alternate" hreflang="x-default" href="https://semat.agency/" />' \
+            -e '/<head>/a <style>body { direction: ltr; text-align: left; overflow-x: hidden; margin: 0; padding: 0; } #__framer-badge-container, .framer-nm3c8g { display: none !important; } [data-framer-component] { direction: ltr !important; } .framer-text.framer-image { border-radius: 20px !important; max-height: 500px !important; object-fit: cover !important; }<\/style>' \
+            -e '/<head>/a <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"Semat Agency","description":"Semat Agency provides IT solutions, digital marketing, and custom software development for businesses in Saudi Arabia.","url":"https://semat.agency/index.html","address":{"@type":"PostalAddress","streetAddress":"123 Business Street","addressLocality":"Riyadh","addressRegion":"Riyadh Province","addressCountry":"SA","postalCode":"12345"},"telephone":"+966-50-361-7701","openingHours":"Mo-Fr 09:00-17:00","geo":{"@type":"GeoCoordinates","latitude":"24.7136","longitude":"46.6753"},"sameAs":["https://semat.agency/servieces.html","https://semat.agency/solutions.html","https://semat.agency/contact-us.html"]}<\/script>' \
+            {} \;
 
       - name: Generate Sitemaps, Robots, and RSS
         run: |
-          # Random offset for lastmod (0-60 minutes ago)
-          RANDOM_OFFSET=$((RANDOM % 60))
-
           # Sitemap for root (Arabic)
           echo '<?xml version="1.0" encoding="UTF-8"?>' > sitemap.xml
           echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' >> sitemap.xml
           find . -type f -name "*.html" -not -path "./en/*" | while read -r file; do
             url="https://semat.agency/${file#./}"
-            lastmod=$(date -u -d "$RANDOM_OFFSET minutes ago" +%Y-%m-%dT%H:%M:%SZ)
+            lastmod=$(date -u -d "now" +%Y-%m-%dT%H:%M:%SZ)
             priority=$(if [[ "$file" == "./index.html" ]]; then echo "1.0"; else echo "0.8"; fi)
             echo "  <url><loc>$url</loc><lastmod>$lastmod</lastmod><changefreq>daily</changefreq><priority>$priority</priority></url>" >> sitemap.xml
           done
@@ -67,13 +67,13 @@ jobs:
           echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' >> en/sitemap.xml
           find ./en -type f -name "*.html" | while read -r file; do
             url="https://semat.agency/${file#./}"
-            lastmod=$(date -u -d "$RANDOM_OFFSET minutes ago" +%Y-%m-%dT%H:%M:%SZ)
+            lastmod=$(date -u -d "now" +%Y-%m-%dT%H:%M:%SZ)
             priority=$(if [[ "$file" == "./en/index.html" ]]; then echo "1.0"; else echo "0.8"; fi)
             echo "  <url><loc>$url</loc><lastmod>$lastmod</lastmod><changefreq>daily</changefreq><priority>$priority</priority></url>" >> en/sitemap.xml
           done
-          echo '</urlset>' >> en/sitemap.xml
+          echo '</urlset>' >> sitemap.xml
 
-          # Robots.txt (SEO optimized, no crawl-me)
+          # Robots.txt
           echo "User-agent: *" > robots.txt
           echo "Allow: /" >> robots.txt
           echo "Allow: /en/" >> robots.txt
@@ -81,12 +81,10 @@ jobs:
           echo "Disallow: /index.html" >> robots.txt
           echo "Sitemap: https://semat.agency/sitemap.xml" >> robots.txt
           echo "Sitemap: https://semat.agency/en/sitemap.xml" >> robots.txt
-          echo "" >> robots.txt
-          echo "Crawl-delay: 10" >> robots.txt
 
-          # Verify robots.txt generation
+          # Verify robots.txt
           if [ -f robots.txt ]; then
-            echo "robots.txt generated successfully:"
+            echo "robots.txt generated:"
             cat robots.txt
           else
             echo "Failed to generate robots.txt" >&2
@@ -119,19 +117,33 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "Automated update with SEO fixes (removed crawl-me)"
+            git commit -m "Automated update: Standalone semat.agency with schema"
             git push https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/${{ github.repository }}.git HEAD:main
           fi
 
-      - name: Verify Robots.txt Accessibility
+      - name: Verify Deployment
         run: |
-          echo "Verifying robots.txt accessibility..."
+          echo "Verifying deployment..."
           sleep 10  # Adjust based on deployment time
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://semat.agency/robots.txt)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://semat.agency/)
           if [ "$STATUS" -eq 200 ]; then
-            echo "robots.txt is accessible at https://semat.agency/robots.txt (HTTP $STATUS)"
+            echo "Root (Arabic) accessible (HTTP $STATUS)"
+          else
+            echo "Root failed (HTTP $STATUS)" >&2
+            exit 1
+          fi
+          STATUS_EN=$(curl -s -o /dev/null -w "%{http_code}" https://semat.agency/en)
+          if [ "$STATUS_EN" -eq 200 ]; then
+            echo "English accessible (HTTP $STATUS_EN)"
+          else
+            echo "English failed (HTTP $STATUS_EN)" >&2
+            exit 1
+          fi
+          STATUS_ROBOTS=$(curl -s -o /dev/null -w "%{http_code}" https://semat.agency/robots.txt)
+          if [ "$STATUS_ROBOTS" -eq 200 ]; then
+            echo "robots.txt accessible (HTTP $STATUS_ROBOTS)"
             curl -s https://semat.agency/robots.txt
           else
-            echo "Failed to access robots.txt (HTTP $STATUS)" >&2
+            echo "robots.txt failed (HTTP $STATUS_ROBOTS)" >&2
             exit 1
           fi
