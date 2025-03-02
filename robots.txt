@@ -5,5 +5,3 @@ Disallow: /*?*
 Disallow: /index.html
 Sitemap: https://semat.agency/sitemap.xml
 Sitemap: https://semat.agency/en/sitemap.xml
-
-Crawl-delay: 10
