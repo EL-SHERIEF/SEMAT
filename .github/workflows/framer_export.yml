@@ -5,8 +5,7 @@ on:
     branches:
       - main
   schedule:
-    - cron: '*/20 * * * *'  # Runs every 20 minutes
-
+    - cron: '0 * * * *'  # Runs every hour (adjusted for testing)
   workflow_dispatch:  # Allows manual triggering of the workflow
 
 jobs:
@@ -26,8 +25,20 @@ jobs:
           httrack "https://semat.framer.website/ar" -O ./main_site --mirror --keep-alive --depth=2 --clean
           if [ -d "./main_site/semat.framer.website/ar" ]; then
             rsync -a ./main_site/semat.framer.website/ar/ ./
+            # Ensure index.html exists in the root
+            if [ ! -f "./index.html" ] && [ -f "./ar/index.html" ]; then
+              mv ./ar/index.html ./index.html
+              # Optional: Clean up the ar directory if not needed
+              rm -rf ./ar
+            fi
           fi
           rm -rf ./main_site
+
+      - name: Ensure Root index.html Exists
+        run: |
+          if [ ! -f "./index.html" ]; then
+            echo '<html><body><h1>Welcome to Semat Agency</h1><p>Redirecting...</p><meta http-equiv="refresh" content="0;url=/ar/index.html"></body></html>' > index.html
+          fi
 
       - name: Export English Framer Site
         run: |
@@ -38,6 +49,13 @@ jobs:
             rsync -a --exclude 'ar' ./en_site/semat.framer.website/ ./en/
           fi
           rm -rf ./en_site
+
+      - name: Debug File Structure
+        run: |
+          echo "Files in root:"
+          ls -la .
+          echo "Files in /en:"
+          ls -la ./en || echo "No /en directory"
 
       - name: Generate Sitemaps, Robots, Crawler Trap, and RSS
         run: |
