@@ -5,8 +5,8 @@ on:
     branches:
       - main
   schedule:
-    - cron: '0 */8 * * *'  # Runs every 8 hours (adjusted from every 20 minutes)
-  workflow_dispatch:  # Allows manual triggering of the workflow
+    - cron: '0 */8 * * *'  # Runs every 8 hours
+  workflow_dispatch:  # Allows manual triggering
 
 jobs:
   export-and-commit:
@@ -16,7 +16,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Full history for better diff detection
+          fetch-depth: 0
 
       - name: Install HTTrack and Dependencies
         run: sudo apt-get update && sudo apt-get install -y httrack python3 curl
@@ -28,7 +28,7 @@ jobs:
           if [ -d "./main_site/semat.framer.website/ar" ]; then
             rsync -a ./main_site/semat.framer.website/ar/ ./
           else
-            echo "Arabic site export failed or directory not found" >&2
+            echo "Arabic site export failed" >&2
             exit 1
           fi
           rm -rf ./main_site
@@ -41,20 +41,20 @@ jobs:
           if [ -d "./en_site/semat.framer.website" ]; then
             rsync -a --exclude 'ar' ./en_site/semat.framer.website/ ./en/
           else
-            echo "English site export failed or directory not found" >&2
+            echo "English site export failed" >&2
             exit 1
           fi
           rm -rf ./en_site
 
-      - name: Generate Sitemaps, Robots, Crawler Trap, and RSS
+      - name: Generate Sitemaps, Robots, and RSS
         run: |
-          # Random offset for fake dynamic lastmod (0-60 minutes ago)
+          # Random offset for lastmod (0-60 minutes ago)
           RANDOM_OFFSET=$((RANDOM % 60))
 
-          # Sitemap for root (Arabic) - recursive, excludes en/ and crawl-me/
+          # Sitemap for root (Arabic)
           echo '<?xml version="1.0" encoding="UTF-8"?>' > sitemap.xml
           echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' >> sitemap.xml
-          find . -type f -name "*.html" -not -path "./en/*" -not -path "./crawl-me/*" | while read -r file; do
+          find . -type f -name "*.html" -not -path "./en/*" | while read -r file; do
             url="https://semat.agency/${file#./}"
             lastmod=$(date -u -d "$RANDOM_OFFSET minutes ago" +%Y-%m-%dT%H:%M:%SZ)
             priority=$(if [[ "$file" == "./index.html" ]]; then echo "1.0"; else echo "0.8"; fi)
@@ -62,7 +62,7 @@ jobs:
           done
           echo '</urlset>' >> sitemap.xml
 
-          # Sitemap for /en (English) - recursive
+          # Sitemap for /en (English)
           echo '<?xml version="1.0" encoding="UTF-8"?>' > en/sitemap.xml
           echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' >> en/sitemap.xml
           find ./en -type f -name "*.html" | while read -r file; do
@@ -73,34 +73,31 @@ jobs:
           done
           echo '</urlset>' >> en/sitemap.xml
 
-          # Robots.txt for root (optimized for SEO)
+          # Robots.txt (SEO optimized, no crawl-me)
           echo "User-agent: *" > robots.txt
-          echo "Disallow: /crawl-me/" >> robots.txt  # Prevent infinite crawl loops
           echo "Allow: /" >> robots.txt
           echo "Allow: /en/" >> robots.txt
-          echo "Disallow: /*?*" >> robots.txt  # Block query parameters
-          echo "Disallow: /index.html" >> robots.txt  # Avoid duplicate root indexing
+          echo "Disallow: /*?*" >> robots.txt
+          echo "Disallow: /index.html" >> robots.txt
           echo "Sitemap: https://semat.agency/sitemap.xml" >> robots.txt
           echo "Sitemap: https://semat.agency/en/sitemap.xml" >> robots.txt
           echo "" >> robots.txt
-          echo "Crawl-delay: 10" >> robots.txt  # Optional: adjust or remove based on server load
+          echo "Crawl-delay: 10" >> robots.txt
 
-          # Crawler trap in /crawl-me (kept for testing, disallowed in robots.txt)
-          mkdir -p crawl-me
-          echo "<html><body><h1>Crawler Trap</h1><ul>" > crawl-me/index.html
-          find . -type f -name "*.html" -not -path "./en/*" -not -path "./crawl-me/*" | while read -r file; do
-            echo "<li><a href=\"https://semat.agency/${file#./}\">${file#./}</a></li>" >> crawl-me/index.html
-          done
-          find ./en -type f -name "*.html" | while read -r file; do
-            echo "<li><a href=\"https://semat.agency/${file#./}\">${file#./}</a></li>" >> crawl-me/index.html
-          done
-          echo "</ul></body></html>" >> crawl-me/index.html
+          # Verify robots.txt generation
+          if [ -f robots.txt ]; then
+            echo "robots.txt generated successfully:"
+            cat robots.txt
+          else
+            echo "Failed to generate robots.txt" >&2
+            exit 1
+          fi
 
-          # RSS feed with better titles and descriptions
+          # RSS feed
           echo '<?xml version="1.0" encoding="UTF-8"?>' > rss.xml
           echo '<rss version="2.0"><channel>' >> rss.xml
           echo "<title>Semat Agency Updates</title><link>https://semat.agency</link><description>Latest updates from Semat Agency</description>" >> rss.xml
-          find . -type f -name "*.html" -not -path "./en/*" -not -path "./crawl-me/*" | while read -r file; do
+          find . -type f -name "*.html" -not -path "./en/*" | while read -r file; do
             url="https://semat.agency/${file#./}"
             title=$(basename "$file" .html | tr '-' ' ' | awk '{for(i=1;i<=NF;i++){$i=toupper(substr($i,1,1)) substr($i,2)}}1')
             echo "<item><title>Arabic: $title</title><link>$url</link><pubDate>$(date -u -R)</pubDate><description>Updated Arabic page</description></item>" >> rss.xml
@@ -112,36 +109,6 @@ jobs:
           done
           echo '</channel></rss>' >> rss.xml
 
-      - name: Ping Search Engines and RSS Aggregators
-        run: |
-          echo "Pinging search engines and RSS aggregators..."
-
-          # Track failures
-          FAILURES=0
-
-          # Bing (covers Yahoo)
-          curl -s "http://www.bing.com/ping?sitemap=https://semat.agency/sitemap.xml" && echo "Bing ping for sitemap.xml successful" || { echo "Bing ping for sitemap.xml failed" >&2; FAILURES=$((FAILURES + 1)); }
-          curl -s "http://www.bing.com/ping?sitemap=https://semat.agency/en/sitemap.xml" && echo "Bing ping for en/sitemap.xml successful" || { echo "Bing ping for en/sitemap.xml failed" >&2; FAILURES=$((FAILURES + 1)); }
-
-          # Yandex
-          curl -s "http://ping.blogs.yandex.ru/ping?sitemap=https://semat.agency/sitemap.xml" && echo "Yandex ping for sitemap.xml successful" || { echo "Yandex ping for sitemap.xml failed" >&2; FAILURES=$((FAILURES + 1)); }
-          curl -s "http://ping.blogs.yandex.ru/ping?sitemap=https://semat.agency/en/sitemap.xml" && echo "Yandex ping for en/sitemap.xml successful" || { echo "Yandex ping for en/sitemap.xml failed" >&2; FAILURES=$((FAILURES + 1)); }
-
-          # Baidu (optional, for Chinese market)
-          curl -s "http://ping.baidu.com/ping?url=https://semat.agency/sitemap.xml" && echo "Baidu ping for sitemap.xml successful" || { echo "Baidu ping for sitemap.xml failed" >&2; FAILURES=$((FAILURES + 1)); }
-
-          # RSS pings
-          curl -s "http://ping.feedburner.com/ping?url=https://semat.agency/rss.xml" && echo "Feedburner RSS ping successful" || { echo "Feedburner RSS ping failed" >&2; FAILURES=$((FAILURES + 1)); }
-          curl -s "http://rpc.pingomatic.com/?url=https://semat.agency/rss.xml" && echo "Pingomatic RSS ping successful" || { echo "Pingomatic RSS ping failed" >&2; FAILURES=$((FAILURES + 1)); }
-
-          # Final status
-          if [ $FAILURES -eq 0 ]; then
-            echo "All ping requests sent successfully."
-          else
-            echo "Completed with $FAILURES ping failures." >&2
-            [ $FAILURES -ge 4 ] && exit 1  # Fail if more than half (4/7) fail
-          fi
-
       - name: Commit and Push Changes
         env:
           ACTIONS_PAT: ${{ secrets.ACTIONS_PAT }}
@@ -152,6 +119,19 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "Automated update with SEO optimizations (robots.txt, sitemaps, RSS)"
+            git commit -m "Automated update with SEO fixes (removed crawl-me)"
             git push https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/${{ github.repository }}.git HEAD:main
+          fi
+
+      - name: Verify Robots.txt Accessibility
+        run: |
+          echo "Verifying robots.txt accessibility..."
+          sleep 10  # Adjust based on deployment time
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://semat.agency/robots.txt)
+          if [ "$STATUS" -eq 200 ]; then
+            echo "robots.txt is accessible at https://semat.agency/robots.txt (HTTP $STATUS)"
+            curl -s https://semat.agency/robots.txt
+          else
+            echo "Failed to access robots.txt (HTTP $STATUS)" >&2
+            exit 1
           fi
