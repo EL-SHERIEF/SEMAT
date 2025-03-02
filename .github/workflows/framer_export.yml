@@ -22,7 +22,7 @@ jobs:
       - name: Export Arabic Framer Site (Main Site)
         run: |
           echo "Downloading Arabic site..."
-          httrack "https://semat.framer.website/ar" -O ./main_site --mirror --keep-alive --depth=3 --robots=0 --ext-depth=1 --clean
+          httrack "https://semat.framer.website/ar" -O ./main_site --mirror --keep-alive --depth=2 --clean
           if [ -d "./main_site/semat.framer.website/ar" ]; then
             rsync -a ./main_site/semat.framer.website/ar/ ./
             # Ensure index.html exists in the root
@@ -30,29 +30,13 @@ jobs:
               mv ./ar/index.html ./index.html
               # Optional: Clean up the ar directory if not needed
               rm -rf ./ar
-            fi
-          fi
-          rm -rf ./main_site
-
-      - name: Ensure Root index.html Exists
-        run: |
-          if [ ! -f "./index.html" ]; then
-            echo '<html><body><h1>Welcome to Semat Agency</h1><p>Redirecting...</p><meta http-equiv="refresh" content="0;url=/ar/index.html"></body></html>' > index.html
-          fi
-
-      - name: Export English Framer Site
-        run: |
-          echo "Downloading English site..."
-          httrack "https://semat.framer.website/" -O ./en_site --mirror --keep-alive --depth=3 --robots=0 --ext-depth=1 --clean
-          mkdir -p ./en
-          if [ -d "./en_site/semat.framer.website" ]; then
-            rsync -a --exclude 'ar' ./en_site/semat.framer.website/ ./en/
+@@ -50,146 +50,150 @@
           fi
           rm -rf ./en_site
 
       - name: Create Vercel Configuration
         run: |
-          echo '{"rewrites": [{"source": "/:path*", "destination": "/index.html"}], "redirects": [{"source": "/:path*", "has": [{"type": "host", "value": "www.semat.agency"}], "destination": "https://semat.agency/:path*", "permanent": true}]}' > vercel.json
+          echo '{"rewrites": [{"source": "/:path*", "destination": "/index.html"}]}' > vercel.json
 
       - name: Debug File Structure
         run: |
@@ -60,9 +44,6 @@ jobs:
           ls -la .
           echo "Files in /en:"
           ls -la ./en || echo "No /en directory"
-          echo "Checking for services/blog files:"
-          ls -la ./services/blog || echo "No services/blog directory in root"
-          ls -la ./en/services/blog || echo "No services/blog directory in /en"
 
       - name: Generate Sitemaps, Robots, Crawler Trap, and RSS
         run: |
@@ -95,7 +76,6 @@ jobs:
           echo "Allow: /crawl-me/" >> robots.txt
           echo "Sitemap: https://semat.agency/sitemap.xml" >> robots.txt
           echo "Sitemap: https://semat.agency/en/sitemap.xml" >> robots.txt
-          echo "Host: semat.agency" >> robots.txt
 
           # Crawler trap in /crawl-me - updated to include subdirectories
           mkdir -p crawl-me
