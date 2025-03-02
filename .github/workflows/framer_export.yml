@@ -5,7 +5,7 @@ on:
     branches:
       - main
   schedule:
-    - cron: '60 * * * *'  # Runs every hour (adjusted for testing)
+    - cron: '0 * * * *'  # Runs every hour
   workflow_dispatch:  # Allows manual triggering of the workflow
 
 jobs:
@@ -49,6 +49,10 @@ jobs:
             rsync -a --exclude 'ar' ./en_site/semat.framer.website/ ./en/
           fi
           rm -rf ./en_site
+
+      - name: Create Vercel Configuration
+        run: |
+          echo '{"rewrites": [{"source": "/:path*", "destination": "/index.html"}]}' > vercel.json
 
       - name: Debug File Structure
         run: |
@@ -190,6 +194,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "Automated update with dark SEO tweaks (Google ping removed)"
+            git commit -m "Automated update with Vercel routing and SEO tweaks"
             git push https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/${{ github.repository }}.git HEAD:main
           fi
