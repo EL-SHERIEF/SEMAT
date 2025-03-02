@@ -117,38 +117,41 @@ jobs:
         run: |
           echo "Verifying deployment..."
           sleep 10  # Adjust based on deployment time
-          # Check root with redirect details
+          # Check root
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://semat.agency/)
           LOCATION=$(curl -s -I https://semat.agency/ | grep -i '^Location:' | cut -d' ' -f2- | tr -d '\r\n')
+          FINAL_STATUS=$(curl -s -L -o /dev/null -w "%{http_code}" -m 10 https://semat.agency/)
           if [ "$STATUS" -eq 200 ]; then
-            echo "Root (Arabic) accessible (HTTP $STATUS)"
+            echo "Root (Arabic) accessible directly (HTTP $STATUS)"
+          elif [ "$FINAL_STATUS" -eq 200 ]; then
+            echo "Root redirected (HTTP $STATUS) to: $LOCATION, final status: $FINAL_STATUS"
           else
-            echo "Root responded with HTTP $STATUS, redirected to: $LOCATION" >&2
-            # Follow redirect to diagnose
-            FINAL_STATUS=$(curl -s -L -o /dev/null -w "%{http_code}" https://semat.agency/)
-            echo "After following redirects, final status: $FINAL_STATUS" >&2
-            [ "$FINAL_STATUS" -ne 200 ] && exit 1
+            echo "Root failed - Initial: $STATUS (to: $LOCATION), Final: $FINAL_STATUS" >&2
+            exit 1
           fi
           # Check /en
           STATUS_EN=$(curl -s -o /dev/null -w "%{http_code}" https://semat.agency/en)
           LOCATION_EN=$(curl -s -I https://semat.agency/en | grep -i '^Location:' | cut -d' ' -f2- | tr -d '\r\n')
+          FINAL_STATUS_EN=$(curl -s -L -o /dev/null -w "%{http_code}" -m 10 https://semat.agency/en)
           if [ "$STATUS_EN" -eq 200 ]; then
-            echo "English accessible (HTTP $STATUS_EN)"
+            echo "English accessible directly (HTTP $STATUS_EN)"
+          elif [ "$FINAL_STATUS_EN" -eq 200 ]; then
+            echo "English redirected (HTTP $STATUS_EN) to: $LOCATION_EN, final status: $FINAL_STATUS_EN"
           else
-            echo "English responded with HTTP $STATUS_EN, redirected to: $LOCATION_EN" >&2
-            FINAL_STATUS_EN=$(curl -s -L -o /dev/null -w "%{http_code}" https://semat.agency/en)
-            echo "After following redirects, final status: $FINAL_STATUS_EN" >&2
-            [ "$FINAL_STATUS_EN" -ne 200 ] && exit 1
+            echo "English failed - Initial: $STATUS_EN (to: $LOCATION_EN), Final: $FINAL_STATUS_EN" >&2
+            exit 1
           fi
           # Check robots.txt
           STATUS_ROBOTS=$(curl -s -o /dev/null -w "%{http_code}" https://semat.agency/robots.txt)
           LOCATION_ROBOTS=$(curl -s -I https://semat.agency/robots.txt | grep -i '^Location:' | cut -d' ' -f2- | tr -d '\r\n')
+          FINAL_STATUS_ROBOTS=$(curl -s -L -o /dev/null -w "%{http_code}" -m 10 https://semat.agency/robots.txt)
           if [ "$STATUS_ROBOTS" -eq 200 ]; then
-            echo "robots.txt accessible (HTTP $STATUS_ROBOTS)"
+            echo "robots.txt accessible directly (HTTP $STATUS_ROBOTS)"
+            curl -s https://semat.agency/robots.txt
+          elif [ "$FINAL_STATUS_ROBOTS" -eq 200 ]; then
+            echo "robots.txt redirected (HTTP $STATUS_ROBOTS) to: $LOCATION_ROBOTS, final status: $FINAL_STATUS_ROBOTS"
             curl -s https://semat.agency/robots.txt
           else
-            echo "robots.txt responded with HTTP $STATUS_ROBOTS, redirected to: $LOCATION_ROBOTS" >&2
-            FINAL_STATUS_ROBOTS=$(curl -s -L -o /dev/null -w "%{http_code}" https://semat.agency/robots.txt)
-            echo "After following redirects, final status: $FINAL_STATUS_ROBOTS" >&2
-            [ "$FINAL_STATUS_ROBOTS" -ne 200 ] && exit 1
+            echo "robots.txt failed - Initial: $STATUS_ROBOTS (to: $LOCATION_ROBOTS), Final: $FINAL_STATUS_ROBOTS" >&2
+            exit 1
           fi
