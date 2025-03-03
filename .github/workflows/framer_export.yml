@@ -19,7 +19,26 @@ jobs:
           fetch-depth: 0
 
       - name: Install Dependencies
-        run: sudo apt-get update && sudo apt-get install -y python3 curl
+        run: sudo apt-get update && sudo apt-get install -y python3 curl httrack rsync
+
+      - name: Export Arabic Framer Site (Main Site)
+        run: |
+          echo "Downloading Arabic site..."
+          httrack "https://semat.framer.website/ar" -O ./main_site --mirror --keep-alive --depth=2 --clean
+          if [ -d "./main_site/semat.framer.website/ar" ]; then
+            rsync -a ./main_site/semat.framer.website/ar/ ./
+          fi
+          rm -rf ./main_site
+
+      - name: Export English Framer Site
+        run: |
+          echo "Downloading English site..."
+          httrack "https://semat.framer.website/" -O ./en_site --mirror --keep-alive --depth=2 --clean
+          mkdir -p ./en
+          if [ -d "./en_site/semat.framer.website" ]; then
+            rsync -a --exclude 'ar' ./en_site/semat.framer.website/ ./en/
+          fi
+          rm -rf ./en_site
 
       - name: Post-Process HTML for Arabic (Root)
         run: |
@@ -119,6 +138,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "Automated update: Standalone www.semat.agency with schema"
+            git commit -m "Automated update: Cloned and processed Semat Agency site"
             git push https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/${{ github.repository }}.git HEAD:main
           fi
