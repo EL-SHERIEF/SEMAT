@@ -24,36 +24,36 @@ jobs:
       - name: Post-Process HTML for Arabic (Root)
         run: |
           find . -type f -name "*.html" -not -path "./en/*" | while read -r file; do
-            url="https://semat.agency/${file#./}"
+            url="https://www.semat.agency/${file#./}"
             sed -i \
               -e 's/<html/<html dir="rtl" lang="ar"/' \
-              -e 's|https://semat.framer.websites|https://semat.agency|g' \
+              -e 's|https://semat.framer.websites|https://www.semat.agency|g' \
               -e '/<base /d' \
               -e '/<head>/a <link rel="canonical" href="'"$url"'" />' \
-              -e '/<head>/a <link rel="alternate" hreflang="ar-SA" href="https://semat.agency/" />' \
-              -e '/<head>/a <link rel="alternate" hreflang="ar" href="https://semat.agency/" />' \
-              -e '/<head>/a <link rel="alternate" hreflang="en" href="https://semat.agency/en" />' \
-              -e '/<head>/a <link rel="alternate" hreflang="x-default" href="https://semat.agency/" />' \
+              -e '/<head>/a <link rel="alternate" hreflang="ar-SA" href="https://www.semat.agency/" />' \
+              -e '/<head>/a <link rel="alternate" hreflang="ar" href="https://www.semat.agency/" />' \
+              -e '/<head>/a <link rel="alternate" hreflang="en" href="https://www.semat.agency/en" />' \
+              -e '/<head>/a <link rel="alternate" hreflang="x-default" href="https://www.semat.agency/" />' \
               -e '/<head>/a <style>body { direction: rtl; text-align: right; overflow-x: hidden; margin: 0; padding: 0; } #__framer-badge-container, .framer-nm3c8g { display: none !important; } [data-framer-component] { direction: rtl !important; } .framer-text.framer-image { border-radius: 20px !important; max-height: 500px !important; object-fit: cover !important; }<\/style>' \
-              -e '/<head>/a <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"Semat Agency","description":"Semat Agency provides IT solutions, digital marketing, and custom software development for businesses in Saudi Arabia.","url":"https://semat.agency/","address":{"@type":"PostalAddress","streetAddress":"123 Business Street","addressLocality":"Riyadh","addressRegion":"Riyadh Province","addressCountry":"SA","postalCode":"12345"},"telephone":"+966-50-361-7701","openingHours":"Mo-Fr 09:00-17:00","geo":{"@type":"GeoCoordinates","latitude":"24.7136","longitude":"46.6753"},"sameAs":["https://semat.agency/servieces.html","https://semat.agency/solutions.html","https://semat.agency/contact-us.html"]}<\/script>' \
+              -e '/<head>/a <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"Semat Agency","description":"Semat Agency provides IT solutions, digital marketing, and custom software development for businesses in Saudi Arabia.","url":"https://www.semat.agency/","address":{"@type":"PostalAddress","streetAddress":"123 Business Street","addressLocality":"Riyadh","addressRegion":"Riyadh Province","addressCountry":"SA","postalCode":"12345"},"telephone":"+966-50-361-7701","openingHours":"Mo-Fr 09:00-17:00","geo":{"@type":"GeoCoordinates","latitude":"24.7136","longitude":"46.6753"},"sameAs":["https://www.semat.agency/servieces.html","https://www.semat.agency/solutions.html","https://www.semat.agency/contact-us.html"]}<\/script>' \
               "$file"
           done
 
       - name: Post-Process HTML for English (/en)
         run: |
           find ./en -type f -name "*.html" | while read -r file; do
-            url="https://semat.agency/${file#./}"
+            url="https://www.semat.agency/${file#./}"
             sed -i \
               -e 's/<html/<html dir="ltr" lang="en"/' \
-              -e 's|https://semat.framer.websites|https://semat.agency|g' \
+              -e 's|https://semat.framer.websites|https://www.semat.agency|g' \
               -e '/<base /d' \
               -e '/<head>/a <link rel="canonical" href="'"$url"'" />' \
-              -e '/<head>/a <link rel="alternate" hreflang="ar-SA" href="https://semat.agency/" />' \
-              -e '/<head>/a <link rel="alternate" hreflang="ar" href="https://semat.agency/" />' \
-              -e '/<head>/a <link rel="alternate" hreflang="en" href="https://semat.agency/en" />' \
-              -e '/<head>/a <link rel="alternate" hreflang="x-default" href="https://semat.agency/" />' \
+              -e '/<head>/a <link rel="alternate" hreflang="ar-SA" href="https://www.semat.agency/" />' \
+              -e '/<head>/a <link rel="alternate" hreflang="ar" href="https://www.semat.agency/" />' \
+              -e '/<head>/a <link rel="alternate" hreflang="en" href="https://www.semat.agency/en" />' \
+              -e '/<head>/a <link rel="alternate" hreflang="x-default" href="https://www.semat.agency/" />' \
               -e '/<head>/a <style>body { direction: ltr; text-align: left; overflow-x: hidden; margin: 0; padding: 0; } #__framer-badge-container, .framer-nm3c8g { display: none !important; } [data-framer-component] { direction: ltr !important; } .framer-text.framer-image { border-radius: 20px !important; max-height: 500px !important; object-fit: cover !important; }<\/style>' \
-              -e '/<head>/a <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"Semat Agency","description":"Semat Agency provides IT solutions, digital marketing, and custom software development for businesses in Saudi Arabia.","url":"https://semat.agency/en","address":{"@type":"PostalAddress","streetAddress":"123 Business Street","addressLocality":"Riyadh","addressRegion":"Riyadh Province","addressCountry":"SA","postalCode":"12345"},"telephone":"+966-50-361-7701","openingHours":"Mo-Fr 09:00-17:00","geo":{"@type":"GeoCoordinates","latitude":"24.7136","longitude":"46.6753"},"sameAs":["https://semat.agency/en/servieces.html","https://semat.agency/en/solutions.html","https://semat.agency/en/contact-us.html"]}<\/script>' \
+              -e '/<head>/a <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"Semat Agency","description":"Semat Agency provides IT solutions, digital marketing, and custom software development for businesses in Saudi Arabia.","url":"https://www.semat.agency/en","address":{"@type":"PostalAddress","streetAddress":"123 Business Street","addressLocality":"Riyadh","addressRegion":"Riyadh Province","addressCountry":"SA","postalCode":"12345"},"telephone":"+966-50-361-7701","openingHours":"Mo-Fr 09:00-17:00","geo":{"@type":"GeoCoordinates","latitude":"24.7136","longitude":"46.6753"},"sameAs":["https://www.semat.agency/en/servieces.html","https://www.semat.agency/en/solutions.html","https://www.semat.agency/en/contact-us.html"]}<\/script>' \
               "$file"
           done
 
@@ -62,7 +62,7 @@ jobs:
           echo '<?xml version="1.0" encoding="UTF-8"?>' > sitemap.xml
           echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' >> sitemap.xml
           find . -type f -name "*.html" -not -path "./en/*" | while read -r file; do
-            url="https://semat.agency/${file#./}"
+            url="https://www.semat.agency/${file#./}"
             lastmod=$(date -u -d "now" +%Y-%m-%dT%H:%M:%SZ)
             priority=$(if [[ "$file" == "./index.html" ]]; then echo "1.0"; else echo "0.8"; fi)
             echo "  <url><loc>$url</loc><lastmod>$lastmod</lastmod><changefreq>daily</changefreq><priority>$priority</priority></url>" >> sitemap.xml
@@ -72,7 +72,7 @@ jobs:
           echo '<?xml version="1.0" encoding="UTF-8"?>' > en/sitemap.xml
           echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' >> en/sitemap.xml
           find ./en -type f -name "*.html" | while read -r file; do
-            url="https://semat.agency/${file#./}"
+            url="https://www.semat.agency/${file#./}"
             lastmod=$(date -u -d "now" +%Y-%m-%dT%H:%M:%SZ)
             priority=$(if [[ "$file" == "./en/index.html" ]]; then echo "1.0"; else echo "0.8"; fi)
             echo "  <url><loc>$url</loc><lastmod>$lastmod</lastmod><changefreq>daily</changefreq><priority>$priority</priority></url>" >> en/sitemap.xml
@@ -84,8 +84,8 @@ jobs:
           echo "Allow: /en/" >> robots.txt
           echo "Disallow: /*?*" >> robots.txt
           echo "Disallow: /index.html" >> robots.txt
-          echo "Sitemap: https://semat.agency/sitemap.xml" >> robots.txt
-          echo "Sitemap: https://semat.agency/en/sitemap.xml" >> robots.txt
+          echo "Sitemap: https://www.semat.agency/sitemap.xml" >> robots.txt
+          echo "Sitemap: https://www.semat.agency/en/sitemap.xml" >> robots.txt
           if [ -f robots.txt ]; then
             echo "robots.txt generated:"
             cat robots.txt
@@ -96,14 +96,14 @@ jobs:
 
           echo '<?xml version="1.0" encoding="UTF-8"?>' > rss.xml
           echo '<rss version="2.0"><channel>' >> rss.xml
-          echo "<title>Semat Agency Updates</title><link>https://semat.agency</link><description>Latest updates from Semat Agency</description>" >> rss.xml
+          echo "<title>Semat Agency Updates</title><link>https://www.semat.agency</link><description>Latest updates from Semat Agency</description>" >> rss.xml
           find . -type f -name "*.html" -not -path "./en/*" | while read -r file; do
-            url="https://semat.agency/${file#./}"
+            url="https://www.semat.agency/${file#./}"
             title=$(basename "$file" .html | tr '-' ' ' | awk '{for(i=1;i<=NF;i++){$i=toupper(substr($i,1,1)) substr($i,2)}}1')
             echo "<item><title>Arabic: $title</title><link>$url</link><pubDate>$(date -u -R)</pubDate><description>Updated Arabic page</description></item>" >> rss.xml
           done
           find ./en -type f -name "*.html" | while read -r file; do
-            url="https://semat.agency/${file#./}"
+            url="https://www.semat.agency/${file#./}"
             title=$(basename "$file" .html | tr '-' ' ' | awk '{for(i=1;i<=NF;i++){$i=toupper(substr($i,1,1)) substr($i,2)}}1')
             echo "<item><title>English: $title</title><link>$url</link><pubDate>$(date -u -R)</pubDate><description>Updated English page</description></item>" >> rss.xml
           done
@@ -119,7 +119,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "Automated update: Standalone semat.agency with schema"
+            git commit -m "Automated update: Standalone www.semat.agency with schema"
             git push https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/${{ github.repository }}.git HEAD:main
           fi
 
@@ -128,68 +128,39 @@ jobs:
           echo "Verifying deployment..."
           sleep 10  # Adjust based on deployment time
           # Check root
-          echo "Checking root (https://semat.agency/):"
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://semat.agency/)
-          LOCATION=$(curl -s -I https://semat.agency/ | grep -i '^Location:' | cut -d' ' -f2- | tr -d '\r\n')
-          FINAL_STATUS=$(curl -s -L -o /dev/null -w "%{http_code}" -m 10 --max-redirs 5 https://semat.agency/)
-          REDIRECT_CHAIN=$(curl -s -L -I -w "%{url_effective} (%{http_code})\n" -m 10 --max-redirs 5 https://semat.agency/ 2>/dev/null | grep -v '^$')
+          echo "Checking root (https://www.semat.agency/):"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://www.semat.agency/)
           if [ "$STATUS" -eq 200 ]; then
             echo "Root accessible directly (HTTP $STATUS)"
-          elif [ "$FINAL_STATUS" -eq 200 ]; then
-            echo "Root redirected (HTTP $STATUS) to: $LOCATION, final status: $FINAL_STATUS"
-            echo "Redirect chain:\n$REDIRECT_CHAIN"
           else
-            echo "Root failed - Initial: $STATUS (to: $LOCATION), Final: $FINAL_STATUS" >&2
-            echo "Redirect chain:\n$REDIRECT_CHAIN" >&2
+            echo "Root failed (HTTP $STATUS)" >&2
             exit 1
           fi
           # Check /en/index.html
-          echo "Checking English (https://semat.agency/en/index.html):"
-          STATUS_EN=$(curl -s -o /dev/null -w "%{http_code}" https://semat.agency/en/index.html)
-          LOCATION_EN=$(curl -s -I https://semat.agency/en/index.html | grep -i '^Location:' | cut -d' ' -f2- | tr -d '\r\n')
-          FINAL_STATUS_EN=$(curl -s -L -o /dev/null -w "%{http_code}" -m 10 --max-redirs 5 https://semat.agency/en/index.html)
-          REDIRECT_CHAIN_EN=$(curl -s -L -I -w "%{url_effective} (%{http_code})\n" -m 10 --max-redirs 5 https://semat.agency/en/index.html 2>/dev/null | grep -v '^$')
+          echo "Checking English (https://www.semat.agency/en/index.html):"
+          STATUS_EN=$(curl -s -o /dev/null -w "%{http_code}" https://www.semat.agency/en/index.html)
           if [ "$STATUS_EN" -eq 200 ]; then
             echo "English accessible directly (HTTP $STATUS_EN)"
-          elif [ "$FINAL_STATUS_EN" -eq 200 ]; then
-            echo "English redirected (HTTP $STATUS_EN) to: $LOCATION_EN, final status: $FINAL_STATUS_EN"
-            echo "Redirect chain:\n$REDIRECT_CHAIN_EN"
           else
-            echo "English failed - Initial: $STATUS_EN (to: $LOCATION_EN), Final: $FINAL_STATUS_EN" >&2
-            echo "Redirect chain:\n$REDIRECT_CHAIN_EN" >&2
+            echo "English failed (HTTP $STATUS_EN)" >&2
             exit 1
           fi
           # Check robots.txt
-          echo "Checking robots.txt (https://semat.agency/robots.txt):"
-          STATUS_ROBOTS=$(curl -s -o /dev/null -w "%{http_code}" https://semat.agency/robots.txt)
-          LOCATION_ROBOTS=$(curl -s -I https://semat.agency/robots.txt | grep -i '^Location:' | cut -d' ' -f2- | tr -d '\r\n')
-          FINAL_STATUS_ROBOTS=$(curl -s -L -o /dev/null -w "%{http_code}" -m 10 --max-redirs 5 https://semat.agency/robots.txt)
-          REDIRECT_CHAIN_ROBOTS=$(curl -s -L -I -w "%{url_effective} (%{http_code})\n" -m 10 --max-redirs 5 https://semat.agency/robots.txt 2>/dev/null | grep -v '^$')
+          echo "Checking robots.txt (https://www.semat.agency/robots.txt):"
+          STATUS_ROBOTS=$(curl -s -o /dev/null -w "%{http_code}" https://www.semat.agency/robots.txt)
           if [ "$STATUS_ROBOTS" -eq 200 ]; then
             echo "robots.txt accessible directly (HTTP $STATUS_ROBOTS)"
-            curl -s https://semat.agency/robots.txt
-          elif [ "$FINAL_STATUS_ROBOTS" -eq 200 ]; then
-            echo "robots.txt redirected (HTTP $STATUS_ROBOTS) to: $LOCATION_ROBOTS, final status: $FINAL_STATUS_ROBOTS"
-            echo "Redirect chain:\n$REDIRECT_CHAIN_ROBOTS"
-            curl -s https://semat.agency/robots.txt
+            curl -s https://www.semat.agency/robots.txt
           else
-            echo "robots.txt failed - Initial: $STATUS_ROBOTS (to: $LOCATION_ROBOTS), Final: $FINAL_STATUS_ROBOTS" >&2
-            echo "Redirect chain:\n$REDIRECT_CHAIN_ROBOTS" >&2
+            echo "robots.txt failed (HTTP $STATUS_ROBOTS)" >&2
             exit 1
           fi
           # Check sitemap.xml
-          echo "Checking sitemap.xml (https://semat.agency/sitemap.xml):"
-          STATUS_SITEMAP=$(curl -s -o /dev/null -w "%{http_code}" https://semat.agency/sitemap.xml)
-          LOCATION_SITEMAP=$(curl -s -I https://semat.agency/sitemap.xml | grep -i '^Location:' | cut -d' ' -f2- | tr -d '\r\n')
-          FINAL_STATUS_SITEMAP=$(curl -s -L -o /dev/null -w "%{http_code}" -m 10 --max-redirs 5 https://semat.agency/sitemap.xml)
-          REDIRECT_CHAIN_SITEMAP=$(curl -s -L -I -w "%{url_effective} (%{http_code})\n" -m 10 --max-redirs 5 https://semat.agency/sitemap.xml 2>/dev/null | grep -v '^$')
+          echo "Checking sitemap.xml (https://www.semat.agency/sitemap.xml):"
+          STATUS_SITEMAP=$(curl -s -o /dev/null -w "%{http_code}" https://www.semat.agency/sitemap.xml)
           if [ "$STATUS_SITEMAP" -eq 200 ]; then
             echo "sitemap.xml accessible directly (HTTP $STATUS_SITEMAP)"
-          elif [ "$FINAL_STATUS_SITEMAP" -eq 200 ]; then
-            echo "sitemap.xml redirected (HTTP $STATUS_SITEMAP) to: $LOCATION_SITEMAP, final status: $FINAL_STATUS_SITEMAP"
-            echo "Redirect chain:\n$REDIRECT_CHAIN_SITEMAP"
           else
-            echo "sitemap.xml failed - Initial: $STATUS_SITEMAP (to: $LOCATION_SITEMAP), Final: $FINAL_STATUS_SITEMAP" >&2
-            echo "Redirect chain:\n$REDIRECT_CHAIN_SITEMAP" >&2
+            echo "sitemap.xml failed (HTTP $STATUS_SITEMAP)" >&2
             exit 1
           fi
