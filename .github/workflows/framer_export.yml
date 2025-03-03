@@ -5,7 +5,7 @@ on:
     branches:
       - main
   schedule:
-    - cron: '0 */8 * * *'  # Every 8 hours
+    - cron: '0 */8 * * *'  # Runs every 8 hours
   workflow_dispatch:
 
 jobs:
@@ -21,87 +21,68 @@ jobs:
       - name: Install Dependencies
         run: sudo apt-get update && sudo apt-get install -y curl
 
-      # Fetch content from Framer with debugging
       - name: Fetch Framer Site Content
         run: |
           mkdir -p en
-          # Define Framer base URL (adjust if incorrect)
-          FRAMER_BASE="https://semat.framer.website"
-          echo "Fetching English from ${FRAMER_BASE}/"
-          curl -s "${FRAMER_BASE}/" -o en/index.html
-          CURL_EN=$?
-          echo "Fetching Arabic from ${FRAMER_BASE}/ar"
-          curl -s "${FRAMER_BASE}/ar" -o index.html
-          CURL_AR=$?
-          
-          # Check fetch results
-          if [ $CURL_EN -ne 0 ] || [ $CURL_AR -ne 0 ] || [ ! -f en/index.html ] || [ ! -f index.html ]; then
-            echo "Error: Failed to fetch content from Framer" >&2
-            [ $CURL_EN -ne 0 ] && echo "English fetch failed with exit code $CURL_EN" >&2
-            [ $CURL_AR -ne 0 ] && echo "Arabic fetch failed with exit code $CURL_AR" >&2
-            [ ! -f en/index.html ] && echo "English file missing" >&2
-            [ ! -f index.html ] && echo "Arabic file missing" >&2
+          curl -s "https://semat.framer.websites/" -o index.html
+          curl -s "https://semat.framer.websites/en" -o en/index.html
+          if [ ! -f index.html ] || [ ! -f en/index.html ]; then
+            echo "Error: Failed to fetch Framer site content" >&2
             exit 1
           fi
-          echo "Successfully fetched content"
 
-      # Process HTML files for SEO and styling
       - name: Process HTML Files
         run: |
           process_html() {
-            local file="$1" lang="$2" dir="$3"
-            local url alternate_en="https://www.semat.agency/en/index.html" alternate_ar="https://www.semat.agency/index.html"
-            [ "$lang" = "ar" ] && url="https://www.semat.agency/${file#./}" || url="https://www.semat.agency/en/${file#en/}"
-            
-            # CSS with placeholders
-            cat <<-'CSS' > temp.css
-            body { direction: DIR; text-align: ALIGN; overflow-x: hidden; margin: 0; padding: 0; }
-            #__framer-badge-container, .framer-nm3c8g { display: none !important; }
-            [data-framer-component] { direction: DIR !important; }
-            .framer-text.framer-image { border-radius: 20px !important; max-height: 500px !important; object-fit: cover !important; }
-            CSS
-            local css=$(sed "s/DIR/${dir}/g; s/ALIGN/${dir/ltr/left}/g" temp.css)
-            rm -f temp.css
-
-            # Schema.org JSON-LD
-            local schema_base='{"@context":"https://schema.org","@type":"LocalBusiness","name":"Semat Agency","description":"Semat Agency provides IT solutions, digital marketing, and custom software development for businesses in Saudi Arabia.","url":"'"${url}"'","address":{"@type":"PostalAddress","streetAddress":"123 Business Street","addressLocality":"Riyadh","addressRegion":"Riyadh Province","addressCountry":"SA","postalCode":"12345"},"telephone":"+966-50-361-7701","openingHours":"Mo-Fr 09:00-17:00","geo":{"@type":"GeoCoordinates","latitude":"24.7136","longitude":"46.6753"}}'
-            local schema_ar="${schema_base},\"sameAs\":[\"https://www.semat.agency/servieces.html\",\"https://www.semat.agency/solutions.html\",\"https://www.semat.agency/contact-us.html\"]"
-            local schema_en="${schema_base},\"sameAs\":[\"https://www.semat.agency/en/servieces.html\",\"https://www.semat.agency/en/solutions.html\",\"https://www.semat.agency/en/contact-us.html\"]"
+            file="$1"
+            lang="$2"
+            dir="$3"
+            url="https://www.semat.agency/${file#./}"
+            alternate_en="https://www.semat.agency/en/index.html"
+            css='body { direction: '"${dir}"'; text-align: '"${dir/ltr/left}"'; overflow-x: hidden; margin: 0; padding: 0; } #__framer-badge-container, .framer-nm3c8g { display: none !important; } [data-framer-component] { direction: '"${dir}"' !important; } .framer-text.framer-image { border-radius: 20px !important; max-height: 500px !important; object-fit: cover !important; }'
+            schema_base='{"@context":"https://schema.org","@type":"LocalBusiness","name":"Semat Agency","description":"Semat Agency provides IT solutions, digital marketing, and custom software development for businesses in Saudi Arabia.","url":"'"${url}"'","address":{"@type":"PostalAddress","streetAddress":"123 Business Street","addressLocality":"Riyadh","addressRegion":"Riyadh Province","addressCountry":"SA","postalCode":"12345"},"telephone":"+966-50-361-7701","openingHours":"Mo-Fr 09:00-17:00","geo":{"@type":"GeoCoordinates","latitude":"24.7136","longitude":"46.6753"}}'
+            schema_ar="${schema_base},\"sameAs\":[\"https://www.semat.agency/servieces.html\",\"https://www.semat.agency/solutions.html\",\"https://www.semat.agency/contact-us.html\"]"
+            schema_en="${schema_base},\"sameAs\":[\"https://www.semat.agency/en/servieces.html\",\"https://www.semat.agency/en/solutions.html\",\"https://www.semat.agency/en/contact-us.html\"]"
 
             sed -i \
               -e "s|<html|<html dir=\"${dir}\" lang=\"${lang}\"|" \
-              -e "s|https://semat.framer.website/ar|https://www.semat.agency|g" \
-              -e "s|https://semat.framer.website|https://www.semat.agency/en|g" \
+              -e "s|https://semat.framer.websites|https://www.semat.agency|g" \
               -e "/<base /d" \
               -e "/<head>/a <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" \
               -e "/<head>/a <link rel=\"canonical\" href=\"${url}\" />" \
-              -e "/<head>/a <link rel=\"alternate\" hreflang=\"ar-SA\" href=\"${alternate_ar}\" />" \
-              -e "/<head>/a <link rel=\"alternate\" hreflang=\"ar\" href=\"${alternate_ar}\" />" \
+              -e "/<head>/a <link rel=\"alternate\" hreflang=\"ar-SA\" href=\"https://www.semat.agency/\" />" \
+              -e "/<head>/a <link rel=\"alternate\" hreflang=\"ar\" href=\"https://www.semat.agency/\" />" \
               -e "/<head>/a <link rel=\"alternate\" hreflang=\"en\" href=\"${alternate_en}\" />" \
-              -e "/<head>/a <link rel=\"alternate\" hreflang=\"x-default\" href=\"${alternate_en}\" />" \
+              -e "/<head>/a <link rel=\"alternate\" hreflang=\"x-default\" href=\"https://www.semat.agency/\" />" \
               -e "/<head>/a <style>${css}</style>" \
               "${file}"
 
             if [ "${file}" = "index.html" ] || [ "${file}" = "en/index.html" ]; then
-              local schema=$( [ "$lang" = "ar" ] && echo "${schema_ar}" || echo "${schema_en}" )
-              sed -i "/<head>/a <script type=\"application/ld+json\">${schema}</script>" "${file}"
+              sed -i \
+                -e "/<head>/a <script type=\"application/ld+json\">${lang/ar/${schema_ar}}${lang/en/${schema_en}}</script>" \
+                "${file}"
             fi
           }
 
-          for file in *.html; do [ -f "${file}" ] && process_html "${file}" "ar" "rtl"; done
-          for file in en/*.html; do [ -f "${file}" ] && process_html "${file}" "en" "ltr"; done
+          for file in *.html; do
+            [ -f "${file}" ] && process_html "${file}" "ar" "rtl"
+          done
+
+          for file in en/*.html; do
+            [ -f "${file}" ] && process_html "${file}" "en" "ltr"
+          done
 
       - name: Generate SEO Files
         run: |
           generate_sitemap() {
-            local dir="$1" output="$2" url_prefix
-            [ "$dir" = "." ] && url_prefix="https://www.semat.agency" || url_prefix="https://www.semat.agency/en"
+            dir="$1"
+            output="$2"
             echo '<?xml version="1.0" encoding="UTF-8"?>' > "${output}"
             echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' >> "${output}"
             find "${dir}" -type f -name "*.html" | while read -r file; do
-              local path="${file#${dir}/}" url="${url_prefix}/${path}"
-              local lastmod=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-              local priority=$( [[ "${path}" =~ index.html ]] && echo "1.0" || echo "0.8" )
+              url="https://www.semat.agency/${file#./}"
+              lastmod=$(date -u -d "now" +%Y-%m-%dT%H:%M:%SZ)
+              priority=$(if echo "${file}" | grep -q "index.html"; then echo "1.0"; else echo "0.8"; fi)
               echo "  <url><loc>${url}</loc><lastmod>${lastmod}</lastmod><changefreq>daily</changefreq><priority>${priority}</priority></url>" >> "${output}"
             done
             echo '</urlset>' >> "${output}"
@@ -110,88 +91,101 @@ jobs:
           generate_sitemap "." "sitemap.xml"
           generate_sitemap "en" "en/sitemap.xml"
 
-          cat <<-'EOF' > robots.txt
-          User-agent: *
-          Allow: /
-          Allow: /en/
-          Disallow: /*?*
-          Disallow: /index.html
-          Disallow: /en/index.html
-          Sitemap: https://www.semat.agency/sitemap.xml
-          Sitemap: https://www.semat.agency/en/sitemap.xml
-          EOF
-          echo "robots.txt generated:" && cat robots.txt
+          cat << 'EOF' > robots.txt
+User-agent: *
+Allow: /
+Allow: /en/
+Disallow: /*?*
+Disallow: /index.html
+Sitemap: https://www.semat.agency/sitemap.xml
+Sitemap: https://www.semat.agency/en/sitemap.xml
+EOF
+          echo "robots.txt generated:"
+          cat robots.txt
 
           echo '<?xml version="1.0" encoding="UTF-8"?>' > rss.xml
           echo '<rss version="2.0"><channel>' >> rss.xml
           echo '<title>Semat Agency Updates</title><link>https://www.semat.agency</link><description>Latest updates from Semat Agency</description>' >> rss.xml
           for file in *.html en/*.html; do
             [ -f "${file}" ] || continue
-            local url lang
-            if [[ "${file}" =~ ^en/ ]]; then
-              url="https://www.semat.agency/en/${file#en/}"
-              lang="English"
-            else
-              url="https://www.semat.agency/${file#./}"
-              lang="Arabic"
-            fi
-            local title=$(basename "${file}" .html | tr '-' ' ' | awk '{for(i=1;i<=NF;i++){$i=toupper(substr($i,1,1)) substr($i,2)}}1')
+            url="https://www.semat.agency/${file#./}"
+            title=$(basename "${file}" .html | tr '-' ' ' | awk '{for(i=1;i<=NF;i++){$i=toupper(substr($i,1,1)) substr($i,2)}}1')
+            lang=$(if echo "${file}" | grep -q "^en/"; then echo "English"; else echo "Arabic"; fi)
             echo "<item><title>${lang}: ${title}</title><link>${url}</link><pubDate>$(date -u -R)</pubDate><description>Updated ${lang} page</description></item>" >> rss.xml
           done
           echo '</channel></rss>' >> rss.xml
 
       - name: Configure Vercel
         run: |
-          cat <<-'EOF' > vercel.json
-          {
-            "cleanUrls": false,
-            "trailingSlash": false,
-            "redirects": [
-              {
-                "source": "/:path*",
-                "has": [{ "type": "host", "value": "semat.agency" }],
-                "destination": "https://www.semat.agency/:path*",
-                "permanent": true
-              }
-            ],
-            "headers": [
-              {
-                "source": "/*.html",
-                "headers": [
-                  { "key": "X-Robots-Tag", "value": "index, follow" },
-                  { "key": "Cache-Control", "value": "public, max-age=3600, must-revalidate" }
-                ]
-              },
-              {
-                "source": "/en/*.html",
-                "headers": [
-                  { "key": "X-Robots-Tag", "value": "index, follow" },
-                  { "key": "Cache-Control", "value": "public, max-age=3600, must-revalidate" }
-                ]
-              },
-              {
-                "source": "/sitemap.xml",
-                "headers": [
-                  { "key": "X-Robots-Tag", "value": "index, follow" },
-                  { "key": "Cache-Control", "value": "public, max-age=86400, must-revalidate" }
-                ]
-              },
-              {
-                "source": "/en/sitemap.xml",
-                "headers": [
-                  { "key": "X-Robots-Tag", "value": "index, follow" },
-                  { "key": "Cache-Control", "value": "public, max-age=86400, must-revalidate" }
-                ]
-              },
-              {
-                "source": "/rss.xml",
-                "headers": [
-                  { "key": "Cache-Control", "value": "public, max-age=3600, must-revalidate" }
-                ]
-              }
-            ]
-          }
-          EOF
+          cat << 'EOF' > vercel.json
+{
+  "cleanUrls": false,
+  "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "semat.agency"
+        }
+      ],
+      "destination": "https://www.semat.agency/:path*",
+      "permanent": true
+    }
+  ],
+  "headers": [
+    {
+      "source": "/*.html",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "index, follow"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/sitemap.xml",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "index, follow"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/en/sitemap.xml",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "index, follow"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/rss.xml",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, must-revalidate"
+        }
+      ]
+    }
+  ]
+}
+EOF
           cat vercel.json
 
       - name: Commit and Push Changes
@@ -204,6 +198,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "Automated update: Optimized site with Arabic at root, English at /en"
+            git commit -m "Automated update: Optimized static site with viewport meta, caching headers, and SEO enhancements"
             git push "https://x-access-token:${ACTIONS_PAT}@github.com/${GITHUB_REPOSITORY}.git" HEAD:main
           fi
