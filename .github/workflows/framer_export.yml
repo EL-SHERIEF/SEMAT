@@ -1,6 +1,5 @@
 name: Maintain Semat Agency Site
 
-# Trigger the workflow on push to main, every 8 hours, or manually
 on:
   push:
     branches:
@@ -14,39 +13,47 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout the repository with full history
       - name: Checkout Repository
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      # Install curl for fetching content
       - name: Install Dependencies
         run: sudo apt-get update && sudo apt-get install -y curl
 
-      # Fetch content from Framer: English from root, Arabic from /ar
+      # Fetch content from Framer with debugging
       - name: Fetch Framer Site Content
         run: |
           mkdir -p en
-          curl -s "https://semat.framer.websites/" -o en/index.html  # English to en/
-          curl -s "https://semat.framer.websites/ar" -o index.html  # Arabic to root
-          if [ ! -f en/index.html ] || [ ! -f index.html ]; then
+          # Define Framer base URL (adjust if incorrect)
+          FRAMER_BASE="https://semat.framer.website"
+          echo "Fetching English from ${FRAMER_BASE}/"
+          curl -s "${FRAMER_BASE}/" -o en/index.html
+          CURL_EN=$?
+          echo "Fetching Arabic from ${FRAMER_BASE}/ar"
+          curl -s "${FRAMER_BASE}/ar" -o index.html
+          CURL_AR=$?
+          
+          # Check fetch results
+          if [ $CURL_EN -ne 0 ] || [ $CURL_AR -ne 0 ] || [ ! -f en/index.html ] || [ ! -f index.html ]; then
             echo "Error: Failed to fetch content from Framer" >&2
+            [ $CURL_EN -ne 0 ] && echo "English fetch failed with exit code $CURL_EN" >&2
+            [ $CURL_AR -ne 0 ] && echo "Arabic fetch failed with exit code $CURL_AR" >&2
+            [ ! -f en/index.html ] && echo "English file missing" >&2
+            [ ! -f index.html ] && echo "Arabic file missing" >&2
             exit 1
           fi
+          echo "Successfully fetched content"
 
       # Process HTML files for SEO and styling
       - name: Process HTML Files
         run: |
-          # Function to process each HTML file with language-specific settings
           process_html() {
             local file="$1" lang="$2" dir="$3"
             local url alternate_en="https://www.semat.agency/en/index.html" alternate_ar="https://www.semat.agency/index.html"
-
-            # Determine URL based on language (Arabic at root, English at /en)
             [ "$lang" = "ar" ] && url="https://www.semat.agency/${file#./}" || url="https://www.semat.agency/en/${file#en/}"
-
-            # Define CSS with placeholders, then substitute variables
+            
+            # CSS with placeholders
             cat <<-'CSS' > temp.css
             body { direction: DIR; text-align: ALIGN; overflow-x: hidden; margin: 0; padding: 0; }
             #__framer-badge-container, .framer-nm3c8g { display: none !important; }
@@ -56,16 +63,15 @@ jobs:
             local css=$(sed "s/DIR/${dir}/g; s/ALIGN/${dir/ltr/left}/g" temp.css)
             rm -f temp.css
 
-            # Schema.org JSON-LD base structure
+            # Schema.org JSON-LD
             local schema_base='{"@context":"https://schema.org","@type":"LocalBusiness","name":"Semat Agency","description":"Semat Agency provides IT solutions, digital marketing, and custom software development for businesses in Saudi Arabia.","url":"'"${url}"'","address":{"@type":"PostalAddress","streetAddress":"123 Business Street","addressLocality":"Riyadh","addressRegion":"Riyadh Province","addressCountry":"SA","postalCode":"12345"},"telephone":"+966-50-361-7701","openingHours":"Mo-Fr 09:00-17:00","geo":{"@type":"GeoCoordinates","latitude":"24.7136","longitude":"46.6753"}}'
             local schema_ar="${schema_base},\"sameAs\":[\"https://www.semat.agency/servieces.html\",\"https://www.semat.agency/solutions.html\",\"https://www.semat.agency/contact-us.html\"]"
             local schema_en="${schema_base},\"sameAs\":[\"https://www.semat.agency/en/servieces.html\",\"https://www.semat.agency/en/solutions.html\",\"https://www.semat.agency/en/contact-us.html\"]"
 
-            # Apply modifications to HTML
             sed -i \
               -e "s|<html|<html dir=\"${dir}\" lang=\"${lang}\"|" \
-              -e "s|https://semat.framer.websites/ar|https://www.semat.agency|g" \
-              -e "s|https://semat.framer.websites|https://www.semat.agency/en|g" \
+              -e "s|https://semat.framer.website/ar|https://www.semat.agency|g" \
+              -e "s|https://semat.framer.website|https://www.semat.agency/en|g" \
               -e "/<base /d" \
               -e "/<head>/a <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" \
               -e "/<head>/a <link rel=\"canonical\" href=\"${url}\" />" \
@@ -76,22 +82,17 @@ jobs:
               -e "/<head>/a <style>${css}</style>" \
               "${file}"
 
-            # Add schema to index pages only
             if [ "${file}" = "index.html" ] || [ "${file}" = "en/index.html" ]; then
               local schema=$( [ "$lang" = "ar" ] && echo "${schema_ar}" || echo "${schema_en}" )
               sed -i "/<head>/a <script type=\"application/ld+json\">${schema}</script>" "${file}"
             fi
           }
 
-          # Process Arabic files (root)
           for file in *.html; do [ -f "${file}" ] && process_html "${file}" "ar" "rtl"; done
-          # Process English files (en/)
           for file in en/*.html; do [ -f "${file}" ] && process_html "${file}" "en" "ltr"; done
 
-      # Generate SEO-related files (sitemaps, robots.txt, RSS)
       - name: Generate SEO Files
         run: |
-          # Function to generate sitemap for a directory
           generate_sitemap() {
             local dir="$1" output="$2" url_prefix
             [ "$dir" = "." ] && url_prefix="https://www.semat.agency" || url_prefix="https://www.semat.agency/en"
@@ -106,10 +107,9 @@ jobs:
             echo '</urlset>' >> "${output}"
           }
 
-          generate_sitemap "." "sitemap.xml"  # Arabic
-          generate_sitemap "en" "en/sitemap.xml"  # English
+          generate_sitemap "." "sitemap.xml"
+          generate_sitemap "en" "en/sitemap.xml"
 
-          # Generate robots.txt
           cat <<-'EOF' > robots.txt
           User-agent: *
           Allow: /
@@ -122,7 +122,6 @@ jobs:
           EOF
           echo "robots.txt generated:" && cat robots.txt
 
-          # Generate RSS feed
           echo '<?xml version="1.0" encoding="UTF-8"?>' > rss.xml
           echo '<rss version="2.0"><channel>' >> rss.xml
           echo '<title>Semat Agency Updates</title><link>https://www.semat.agency</link><description>Latest updates from Semat Agency</description>' >> rss.xml
@@ -141,7 +140,6 @@ jobs:
           done
           echo '</channel></rss>' >> rss.xml
 
-      # Configure Vercel deployment settings
       - name: Configure Vercel
         run: |
           cat <<-'EOF' > vercel.json
@@ -196,7 +194,6 @@ jobs:
           EOF
           cat vercel.json
 
-      # Commit and push changes if any
       - name: Commit and Push Changes
         env:
           ACTIONS_PAT: ${{ secrets.ACTIONS_PAT }}
