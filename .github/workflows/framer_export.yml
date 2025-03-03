@@ -137,7 +137,7 @@ jobs:
             exit 1
           fi
           # Check /en/index.html
-          echo "Checking English (https://www.semat.agency/en/index.html):"
+          echo "Checking English (https://www.semat.agency/en/):"
           STATUS_EN=$(curl -s -o /dev/null -w "%{http_code}" https://www.semat.agency/en/index.html)
           if [ "$STATUS_EN" -eq 200 ]; then
             echo "English accessible directly (HTTP $STATUS_EN)"
