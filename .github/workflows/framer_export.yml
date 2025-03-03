@@ -109,7 +109,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "Automated update: Fixed robots.txt and redirect loops"
+            git commit -m "Automated update: Fixed redirect loops for robots.txt and sitemap.xml"
             git push https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/${{ github.repository }}.git HEAD:main
           fi
 
@@ -174,5 +174,23 @@ jobs:
           else
             echo "robots.txt failed - Initial: $STATUS_ROBOTS (to: $LOCATION_ROBOTS), Final: $FINAL_STATUS_ROBOTS" >&2
             echo "Redirect chain:\n$REDIRECT_CHAIN_ROBOTS" >&2
+            exit 1
+          fi
+          # Check sitemap.xml
+          echo "Checking sitemap.xml (https://semat.agency/sitemap.xml):"
+          STATUS_SITEMAP=$(curl -s -o /dev/null -w "%{http_code}" https://semat.agency/sitemap.xml)
+          LOCATION_SITEMAP=$(curl -s -I https://semat.agency/sitemap.xml | grep -i '^Location:' | cut -d' ' -f2- | tr -d '\r\n')
+          FINAL_STATUS_SITEMAP=$(curl -s -L -o /dev/null -w "%{http_code}" -m 10 --max-redirs 5 https://semat.agency/sitemap.xml)
+          REDIRECT_CHAIN_SITEMAP=$(curl -s -L -I -w "%{url_effective} (%{http_code})\n" -m 10 --max-redirs 5 https://semat.agency/sitemap.xml 2>/dev/null | grep -v '^$')
+          if [ "$STATUS_SITEMAP" -eq 200 ]; then
+            echo "sitemap.xml accessible directly (HTTP $STATUS_SITEMAP)"
+            curl -s https://semat.agency/sitemap.xml
+          elif [ "$FINAL_STATUS_SITEMAP" -eq 200 ]; then
+            echo "sitemap.xml redirected (HTTP $STATUS_SITEMAP) to: $LOCATION_SITEMAP, final status: $FINAL_STATUS_SITEMAP"
+            echo "Redirect chain:\n$REDIRECT_CHAIN_SITEMAP"
+            curl -s https://semat.agency/sitemap.xml
+          else
+            echo "sitemap.xml failed - Initial: $STATUS_SITEMAP (to: $LOCATION_SITEMAP), Final: $FINAL_STATUS_SITEMAP" >&2
+            echo "Redirect chain:\n$REDIRECT_CHAIN_SITEMAP" >&2
             exit 1
           fi
