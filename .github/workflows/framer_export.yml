@@ -5,7 +5,7 @@ on:
     branches:
       - main
   schedule:
-    - cron: '0 */8 * * *'  # Runs every 8 hours
+    - cron: '0 */8 * * *'
   workflow_dispatch:
 
 jobs:
@@ -109,14 +109,23 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "Automated update: Standalone semat.agency with schema"
+            git commit -m "Automated update: Fixed robots.txt and redirect loops"
             git push https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/${{ github.repository }}.git HEAD:main
           fi
+
+      - name: Deploy to Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        run: |
+          npm install -g vercel
+          vercel --token $VERCEL_TOKEN --prod --scope $VERCEL_ORG_ID --project $VERCEL_PROJECT_ID --confirm
 
       - name: Verify Deployment
         run: |
           echo "Verifying deployment..."
-          sleep 10  # Adjust based on deployment time
+          sleep 15
           # Check root
           echo "Checking root (https://semat.agency/):"
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://semat.agency/)
