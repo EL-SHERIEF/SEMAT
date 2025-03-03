@@ -113,19 +113,10 @@ jobs:
             git push https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/${{ github.repository }}.git HEAD:main
           fi
 
-      - name: Deploy to Vercel
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-        run: |
-          npm install -g vercel
-          vercel --token $VERCEL_TOKEN --prod --scope $VERCEL_ORG_ID --project $VERCEL_PROJECT_ID --confirm
-
       - name: Verify Deployment
         run: |
           echo "Verifying deployment..."
-          sleep 15
+          sleep 15  # Wait for Vercel auto-deployment
           # Check root
           echo "Checking root (https://semat.agency/):"
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://semat.agency/)
