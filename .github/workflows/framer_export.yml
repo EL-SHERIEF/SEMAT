@@ -39,7 +39,15 @@ jobs:
             dir="$3"
             url="https://www.semat.agency/${file#./}"
             alternate_en="https://www.semat.agency/en/index.html"
-            css='body { direction: '"${dir}"'; text-align: '"${dir/ltr/left}"'; overflow-x: hidden; margin: 0; padding: 0; } #__framer-badge-container, .framer-nm3c8g { display: none !important; } [data-framer-component] { direction: '"${dir}"' !important; } .framer-text.framer-image { border-radius: 20px !important; max-height: 500px !important; object-fit: cover !important; }'
+            # Simplified CSS with heredoc to avoid quoting issues
+            cat <<-'CSS' > temp.css
+            body { direction: DIR; text-align: ALIGN; overflow-x: hidden; margin: 0; padding: 0; }
+            #__framer-badge-container, .framer-nm3c8g { display: none !important; }
+            [data-framer-component] { direction: DIR !important; }
+            .framer-text.framer-image { border-radius: 20px !important; max-height: 500px !important; object-fit: cover !important; }
+            CSS
+            css=$(cat temp.css | sed "s/DIR/${dir}/g; s/ALIGN/${dir/ltr/left}/g")
+            rm temp.css
             schema_base='{"@context":"https://schema.org","@type":"LocalBusiness","name":"Semat Agency","description":"Semat Agency provides IT solutions, digital marketing, and custom software development for businesses in Saudi Arabia.","url":"'"${url}"'","address":{"@type":"PostalAddress","streetAddress":"123 Business Street","addressLocality":"Riyadh","addressRegion":"Riyadh Province","addressCountry":"SA","postalCode":"12345"},"telephone":"+966-50-361-7701","openingHours":"Mo-Fr 09:00-17:00","geo":{"@type":"GeoCoordinates","latitude":"24.7136","longitude":"46.6753"}}'
             schema_ar="${schema_base},\"sameAs\":[\"https://www.semat.agency/servieces.html\",\"https://www.semat.agency/solutions.html\",\"https://www.semat.agency/contact-us.html\"]"
             schema_en="${schema_base},\"sameAs\":[\"https://www.semat.agency/en/servieces.html\",\"https://www.semat.agency/en/solutions.html\",\"https://www.semat.agency/en/contact-us.html\"]"
@@ -91,15 +99,15 @@ jobs:
           generate_sitemap "." "sitemap.xml"
           generate_sitemap "en" "en/sitemap.xml"
 
-          cat << 'EOF' > robots.txt
-User-agent: *
-Allow: /
-Allow: /en/
-Disallow: /*?*
-Disallow: /index.html
-Sitemap: https://www.semat.agency/sitemap.xml
-Sitemap: https://www.semat.agency/en/sitemap.xml
-EOF
+          cat <<-'EOF' > robots.txt
+          User-agent: *
+          Allow: /
+          Allow: /en/
+          Disallow: /*?*
+          Disallow: /index.html
+          Sitemap: https://www.semat.agency/sitemap.xml
+          Sitemap: https://www.semat.agency/en/sitemap.xml
+          EOF
           echo "robots.txt generated:"
           cat robots.txt
 
@@ -117,75 +125,75 @@ EOF
 
       - name: Configure Vercel
         run: |
-          cat << 'EOF' > vercel.json
-{
-  "cleanUrls": false,
-  "trailingSlash": false,
-  "redirects": [
-    {
-      "source": "/:path*",
-      "has": [
-        {
-          "type": "host",
-          "value": "semat.agency"
-        }
-      ],
-      "destination": "https://www.semat.agency/:path*",
-      "permanent": true
-    }
-  ],
-  "headers": [
-    {
-      "source": "/*.html",
-      "headers": [
-        {
-          "key": "X-Robots-Tag",
-          "value": "index, follow"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=3600, must-revalidate"
-        }
-      ]
-    },
-    {
-      "source": "/sitemap.xml",
-      "headers": [
-        {
-          "key": "X-Robots-Tag",
-          "value": "index, follow"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=86400, must-revalidate"
-        }
-      ]
-    },
-    {
-      "source": "/en/sitemap.xml",
-      "headers": [
-        {
-          "key": "X-Robots-Tag",
-          "value": "index, follow"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=86400, must-revalidate"
-        }
-      ]
-    },
-    {
-      "source": "/rss.xml",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=3600, must-revalidate"
-        }
-      ]
-    }
-  ]
-}
-EOF
+          cat <<-'EOF' > vercel.json
+          {
+            "cleanUrls": false,
+            "trailingSlash": false,
+            "redirects": [
+              {
+                "source": "/:path*",
+                "has": [
+                  {
+                    "type": "host",
+                    "value": "semat.agency"
+                  }
+                ],
+                "destination": "https://www.semat.agency/:path*",
+                "permanent": true
+              }
+            ],
+            "headers": [
+              {
+                "source": "/*.html",
+                "headers": [
+                  {
+                    "key": "X-Robots-Tag",
+                    "value": "index, follow"
+                  },
+                  {
+                    "key": "Cache-Control",
+                    "value": "public, max-age=3600, must-revalidate"
+                  }
+                ]
+              },
+              {
+                "source": "/sitemap.xml",
+                "headers": [
+                  {
+                    "key": "X-Robots-Tag",
+                    "value": "index, follow"
+                  },
+                  {
+                    "key": "Cache-Control",
+                    "value": "public, max-age=86400, must-revalidate"
+                  }
+                ]
+              },
+              {
+                "source": "/en/sitemap.xml",
+                "headers": [
+                  {
+                    "key": "X-Robots-Tag",
+                    "value": "index, follow"
+                  },
+                  {
+                    "key": "Cache-Control",
+                    "value": "public, max-age=86400, must-revalidate"
+                  }
+                ]
+              },
+              {
+                "source": "/rss.xml",
+                "headers": [
+                  {
+                    "key": "Cache-Control",
+                    "value": "public, max-age=3600, must-revalidate"
+                  }
+                ]
+              }
+            ]
+          }
+          EOF
           cat vercel.json
 
       - name: Commit and Push Changes
