@@ -32,7 +32,7 @@ jobs:
               -e '/<head>/a <link rel="canonical" href="'"$url"'" />' \
               -e '/<head>/a <link rel="alternate" hreflang="ar-SA" href="https://www.semat.agency/" />' \
               -e '/<head>/a <link rel="alternate" hreflang="ar" href="https://www.semat.agency/" />' \
-              -e '/<head>/a <link rel="alternate" hreflang="en" href="https://www.semat.agency/en" />' \
+              -e '/<head>/a <link rel="alternate" hreflang="en" href="https://www.semat.agency/en/index.html" />' \
               -e '/<head>/a <link rel="alternate" hreflang="x-default" href="https://www.semat.agency/" />' \
               -e '/<head>/a <style>body { direction: rtl; text-align: right; overflow-x: hidden; margin: 0; padding: 0; } #__framer-badge-container, .framer-nm3c8g { display: none !important; } [data-framer-component] { direction: rtl !important; } .framer-text.framer-image { border-radius: 20px !important; max-height: 500px !important; object-fit: cover !important; }<\/style>' \
               -e '/<head>/a <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"Semat Agency","description":"Semat Agency provides IT solutions, digital marketing, and custom software development for businesses in Saudi Arabia.","url":"https://www.semat.agency/","address":{"@type":"PostalAddress","streetAddress":"123 Business Street","addressLocality":"Riyadh","addressRegion":"Riyadh Province","addressCountry":"SA","postalCode":"12345"},"telephone":"+966-50-361-7701","openingHours":"Mo-Fr 09:00-17:00","geo":{"@type":"GeoCoordinates","latitude":"24.7136","longitude":"46.6753"},"sameAs":["https://www.semat.agency/servieces.html","https://www.semat.agency/solutions.html","https://www.semat.agency/contact-us.html"]}<\/script>' \
@@ -41,6 +41,7 @@ jobs:
 
       - name: Post-Process HTML for English (/en)
         run: |
+          mkdir -p en
           find ./en -type f -name "*.html" | while read -r file; do
             url="https://www.semat.agency/${file#./}"
             sed -i \
@@ -50,10 +51,10 @@ jobs:
               -e '/<head>/a <link rel="canonical" href="'"$url"'" />' \
               -e '/<head>/a <link rel="alternate" hreflang="ar-SA" href="https://www.semat.agency/" />' \
               -e '/<head>/a <link rel="alternate" hreflang="ar" href="https://www.semat.agency/" />' \
-              -e '/<head>/a <link rel="alternate" hreflang="en" href="https://www.semat.agency/en" />' \
+              -e '/<head>/a <link rel="alternate" hreflang="en" href="https://www.semat.agency/en/index.html" />' \
               -e '/<head>/a <link rel="alternate" hreflang="x-default" href="https://www.semat.agency/" />' \
               -e '/<head>/a <style>body { direction: ltr; text-align: left; overflow-x: hidden; margin: 0; padding: 0; } #__framer-badge-container, .framer-nm3c8g { display: none !important; } [data-framer-component] { direction: ltr !important; } .framer-text.framer-image { border-radius: 20px !important; max-height: 500px !important; object-fit: cover !important; }<\/style>' \
-              -e '/<head>/a <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"Semat Agency","description":"Semat Agency provides IT solutions, digital marketing, and custom software development for businesses in Saudi Arabia.","url":"https://www.semat.agency/en","address":{"@type":"PostalAddress","streetAddress":"123 Business Street","addressLocality":"Riyadh","addressRegion":"Riyadh Province","addressCountry":"SA","postalCode":"12345"},"telephone":"+966-50-361-7701","openingHours":"Mo-Fr 09:00-17:00","geo":{"@type":"GeoCoordinates","latitude":"24.7136","longitude":"46.6753"},"sameAs":["https://www.semat.agency/en/servieces.html","https://www.semat.agency/en/solutions.html","https://www.semat.agency/en/contact-us.html"]}<\/script>' \
+              -e '/<head>/a <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"Semat Agency","description":"Semat Agency provides IT solutions, digital marketing, and custom software development for businesses in Saudi Arabia.","url":"https://www.semat.agency/en/index.html","address":{"@type":"PostalAddress","streetAddress":"123 Business Street","addressLocality":"Riyadh","addressRegion":"Riyadh Province","addressCountry":"SA","postalCode":"12345"},"telephone":"+966-50-361-7701","openingHours":"Mo-Fr 09:00-17:00","geo":{"@type":"GeoCoordinates","latitude":"24.7136","longitude":"46.6753"},"sameAs":["https://www.semat.agency/en/servieces.html","https://www.semat.agency/en/solutions.html","https://www.semat.agency/en/contact-us.html"]}<\/script>' \
               "$file"
           done
 
@@ -109,6 +110,27 @@ jobs:
           done
           echo '</channel></rss>' >> rss.xml
 
+      - name: Create Vercel Configuration
+        run: |
+          echo '{
+            "cleanUrls": false,
+            "trailingSlash": false,
+            "redirects": [
+              {
+                "source": "/:path*",
+                "has": [
+                  {
+                    "type": "host",
+                    "value": "semat.agency"
+                  }
+                ],
+                "destination": "https://www.semat.agency/:path*",
+                "permanent": true
+              }
+            ]
+          }' > vercel.json
+          cat vercel.json
+
       - name: Commit and Push Changes
         env:
           ACTIONS_PAT: ${{ secrets.ACTIONS_PAT }}
@@ -119,6 +141,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "Automated update: Standalone www.semat.agency with schema"
+            git commit -m "Automated update: Standalone www.semat.agency with static file serving"
             git push https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/${{ github.repository }}.git HEAD:main
           fi
