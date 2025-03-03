@@ -50,6 +50,7 @@ jobs:
               -e "s|<html|<html dir=\"$dir\" lang=\"$lang\"|" \
               -e 's|https://semat.framer.websites|https://www.semat.agency|g' \
               -e '/<base /d' \
+              -e '/<head>/a <meta name="viewport" content="width=device-width, initial-scale=1">' \
               -e "/<head>/a <link rel=\"canonical\" href=\"$url\" />" \
               -e '/<head>/a <link rel="alternate" hreflang="ar-SA" href="https://www.semat.agency/" />' \
               -e '/<head>/a <link rel="alternate" hreflang="ar" href="https://www.semat.agency/" />' \
@@ -148,6 +149,10 @@ EOF
         {
           "key": "X-Robots-Tag",
           "value": "index, follow"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, must-revalidate"
         }
       ]
     },
@@ -157,6 +162,10 @@ EOF
         {
           "key": "X-Robots-Tag",
           "value": "index, follow"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, must-revalidate"
         }
       ]
     },
@@ -166,6 +175,19 @@ EOF
         {
           "key": "X-Robots-Tag",
           "value": "index, follow"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/rss.xml",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, must-revalidate"
         }
       ]
     }
@@ -184,6 +206,6 @@ EOF
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "Automated update: Optimized static site with X-Robots-Tag and single schema"
+            git commit -m "Automated update: Optimized static site with viewport meta, caching headers, and SEO enhancements"
             git push https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/${{ github.repository }}.git HEAD:main
           fi
