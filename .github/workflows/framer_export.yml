@@ -76,7 +76,7 @@ jobs:
               "$file"
           done
 
-      - name: Generate Sitemaps, Robots, and RSS
+          - name: Generate Sitemaps, Robots, and RSS
         run: |
           echo '<?xml version="1.0" encoding="UTF-8"?>' > sitemap.xml
           echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' >> sitemap.xml
@@ -113,21 +113,20 @@ jobs:
             exit 1
           fi
 
+          # Static RSS feed generation without modifying title and description
           echo '<?xml version="1.0" encoding="UTF-8"?>' > rss.xml
           echo '<rss version="2.0"><channel>' >> rss.xml
-          echo "<title>Semat Agency Updates</title><link>https://www.semat.agency</link><description>Latest updates from Semat Agency</description>" >> rss.xml
+          echo "<title>Maintain Semat Agency Site</title><link>https://www.semat.agency</link><description>Automated updates for Semat Agency site maintenance</description>" >> rss.xml
           find . -type f -name "*.html" -not -path "./en/*" | while read -r file; do
             url="https://www.semat.agency/${file#./}"
-            title=$(basename "$file" .html | tr '-' ' ' | awk '{for(i=1;i<=NF;i++){$i=toupper(substr($i,1,1)) substr($i,2)}}1')
-            echo "<item><title>Arabic: $title</title><link>$url</link><pubDate>$(date -u -R)</pubDate><description>Updated Arabic page</description></item>" >> rss.xml
+            echo "<item><title>Arabic Page Update: ${file#./}</title><link>$url</link><pubDate>$(date -u -R)</pubDate><description>Updated Arabic page at ${file#./}</description></item>" >> rss.xml
           done
           find ./en -type f -name "*.html" | while read -r file; do
             url="https://www.semat.agency/${file#./}"
-            title=$(basename "$file" .html | tr '-' ' ' | awk '{for(i=1;i<=NF;i++){$i=toupper(substr($i,1,1)) substr($i,2)}}1')
-            echo "<item><title>English: $title</title><link>$url</link><pubDate>$(date -u -R)</pubDate><description>Updated English page</description></item>" >> rss.xml
+            echo "<item><title>English Page Update: ${file#./}</title><link>$url</link><pubDate>$(date -u -R)</pubDate><description>Updated English page at ${file#./}</description></item>" >> rss.xml
           done
           echo '</channel></rss>' >> rss.xml
-
+          
       - name: Commit and Push Changes
         env:
           ACTIONS_PAT: ${{ secrets.ACTIONS_PAT }}
