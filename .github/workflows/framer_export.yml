@@ -76,7 +76,7 @@ jobs:
               "$file"
           done
 
-          - name: Generate Sitemaps, Robots, and RSS
+      - name: Generate Sitemaps, Robots, and RSS
         run: |
           echo '<?xml version="1.0" encoding="UTF-8"?>' > sitemap.xml
           echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' >> sitemap.xml
@@ -113,7 +113,6 @@ jobs:
             exit 1
           fi
 
-          # Static RSS feed generation without modifying title and description
           echo '<?xml version="1.0" encoding="UTF-8"?>' > rss.xml
           echo '<rss version="2.0"><channel>' >> rss.xml
           echo "<title>Maintain Semat Agency Site</title><link>https://www.semat.agency</link><description>Automated updates for Semat Agency site maintenance</description>" >> rss.xml
@@ -126,7 +125,7 @@ jobs:
             echo "<item><title>English Page Update: ${file#./}</title><link>$url</link><pubDate>$(date -u -R)</pubDate><description>Updated English page at ${file#./}</description></item>" >> rss.xml
           done
           echo '</channel></rss>' >> rss.xml
-          
+
       - name: Commit and Push Changes
         env:
           ACTIONS_PAT: ${{ secrets.ACTIONS_PAT }}
