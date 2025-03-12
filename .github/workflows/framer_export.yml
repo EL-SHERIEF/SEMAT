@@ -43,14 +43,23 @@ jobs:
       - name: Post-Process HTML for Arabic (Root)
         run: |
           find . -type f -name "*.html" -not -path "./en/*" | while read -r file; do
+            # Calculate the correct canonical URL for each file
+            if [ "$file" = "./index.html" ]; then
+              canonical_url="https://www.semat.agency/"
+            else
+              relative_path=$(echo "$file" | sed 's/^\.\///')
+              canonical_url="https://www.semat.agency/$relative_path"
+            fi
             # Remove all HTML comments and specific Framer/HTTrack comments
             sed -i \
               -e 's/<!--.*-->//g' \
-              -e '/<!-- Mirrored from semat\.framer\.website\/[a-z\/]* by HTTrack Website Copier\/3\.x \[XR&CO'\''2014\], .* GMT -->/d' \
-              -e '/<!-- ✨ Built with Framer • https:\/\/www.framer.com\/ -->/d' \
+              -e '/<link rel="canonical"/d' \
+              -e '/<link rel="alternate"/d' \
+              -e '/<meta name="robots"/d' \
               -e 's/<html/<html dir="rtl" lang="ar"/' \
               -e '/<base /d' \
-              -e '/<head>/a <link rel="canonical" href="https://www.semat.agency/" />' \
+              -e '/<head>/a <meta name="robots" content="index, follow" />' \
+              -e "/<head>/a <link rel=\"canonical\" href=\"$canonical_url\" />" \
               -e '/<head>/a <link rel="alternate" hreflang="ar-SA" href="https://www.semat.agency/" />' \
               -e '/<head>/a <link rel="alternate" hreflang="ar" href="https://www.semat.agency/" />' \
               -e '/<head>/a <link rel="alternate" hreflang="en" href="https://www.semat.agency/en" />' \
@@ -63,14 +72,23 @@ jobs:
       - name: Post-Process HTML for English (/en)
         run: |
           find ./en -type f -name "*.html" | while read -r file; do
+            # Calculate the correct canonical URL for each file
+            if [ "$file" = "./en/index.html" ]; then
+              canonical_url="https://www.semat.agency/en"
+            else
+              relative_path=$(echo "$file" | sed 's/^\.\///')
+              canonical_url="https://www.semat.agency/$relative_path"
+            fi
             # Remove all HTML comments and specific Framer/HTTrack comments
             sed -i \
               -e 's/<!--.*-->//g' \
-              -e '/<!-- Mirrored from semat\.framer\.website\/[a-z\/]* by HTTrack Website Copier\/3\.x \[XR&CO'\''2014\], .* GMT -->/d' \
-              -e '/<!-- ✨ Built with Framer • https:\/\/www.framer.com\/ -->/d' \
+              -e '/<link rel="canonical"/d' \
+              -e '/<link rel="alternate"/d' \
+              -e '/<meta name="robots"/d' \
               -e 's/<html/<html dir="ltr" lang="en"/' \
               -e '/<base /d' \
-              -e '/<head>/a <link rel="canonical" href="https://www.semat.agency/en" />' \
+              -e '/<head>/a <meta name="robots" content="index, follow" />' \
+              -e "/<head>/a <link rel=\"canonical\" href=\"$canonical_url\" />" \
               -e '/<head>/a <link rel="alternate" hreflang="ar-SA" href="https://www.semat.agency/" />' \
               -e '/<head>/a <link rel="alternate" hreflang="ar" href="https://www.semat.agency/" />' \
               -e '/<head>/a <link rel="alternate" hreflang="en" href="https://www.semat.agency/en" />' \
