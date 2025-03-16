@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>404 - Page Not Found</title>
+  <script>
+    (function() {
+      var path = window.location.pathname;
+      if (!path.endsWith('.html') && !path.includes('.')) {
+        window.location.replace(path.replace(/\/$/, '') + '.html');
+      }
+    })();
+  </script>
+</head>
+<body>
+  <p>Redirecting...</p>
+</body>
+</html>

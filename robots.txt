@@ -2,6 +2,5 @@ User-agent: *
 Allow: /
 Allow: /en/
 Disallow: /*?*
-Disallow: /index.html
 Sitemap: https://www.semat.agency/sitemap.xml
 Sitemap: https://www.semat.agency/en/sitemap.xml
