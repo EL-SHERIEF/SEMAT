@@ -18,85 +18,114 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install Dependencies
-        run: sudo apt-get update && sudo apt-get install -y python3 curl httrack rsync
-
-      - name: Export Arabic Framer Site (Main Site)
+      - name: Clean Repository
         run: |
-          echo "Downloading Arabic site..."
-          httrack "https://semat.framer.website/ar" -O ./main_site --mirror --keep-alive --depth=2 --clean
-          if [ -d "./main_site/semat.framer.website/ar" ]; then
-            rsync -a ./main_site/semat.framer.website/ar/ ./
-          fi
-          rm -rf ./main_site
+          echo "Cleaning existing files..."
+          find . -maxdepth 1 -type f -not -name ".gitignore" -not -name "README.md" -not -name ".git" -not -name ".github" -exec rm -rf {} +
+          find . -maxdepth 1 -type d -not -name "." -not -name ".git" -not -name ".github" -exec rm -rf {} +
+          git add .
+          git commit -m "Cleaned repository before cloning" || echo "No changes to commit"
 
-      - name: Export English Framer Site
+      - name: Install wget
+        run: sudo apt-get update && sudo apt-get install -y wget
+
+      - name: Clone Arabic Framer Site (Root)
         run: |
-          echo "Downloading English site..."
-          httrack "https://semat.framer.website/" -O ./en_site --mirror --keep-alive --depth=2 --clean
+          echo "Cloning Arabic site..."
+          wget \
+            --recursive \
+            --page-requisites \
+            --html-extension \
+            --convert-links \
+            --domains=semat.framer.website \
+            --no-parent \
+            --directory-prefix=./ \
+            https://semat.framer.website/ar/
+          # Move files to root and clean up
+          mv semat.framer.website/ar/* ./
+          rm -rf semat.framer.website
+
+      - name: Clone English Framer Site (/en)
+        run: |
+          echo "Cloning English site..."
           mkdir -p ./en
-          if [ -d "./en_site/semat.framer.website" ]; then
-            rsync -a --exclude 'ar' ./en_site/semat.framer.website/ ./en/
-          fi
-          rm -rf ./en_site
+          wget \
+            --recursive \
+            --page-requisites \
+            --html-extension \
+            --convert-links \
+            --domains=semat.framer.website \
+            --no-parent \
+            --directory-prefix=./en \
+            https://semat.framer.website/
+          # Move files to /en and clean up
+          mv en/semat.framer.website/* en/
+          rm -rf en/semat.framer.website
 
       - name: Post-Process HTML for Arabic (Root)
         run: |
           find . -type f -name "*.html" -not -path "./en/*" | while read -r file; do
-            # Calculate the correct canonical URL for each file
             if [ "$file" = "./index.html" ]; then
               canonical_url="https://www.semat.agency/"
             else
               relative_path=$(echo "$file" | sed 's/^\.\///')
               canonical_url="https://www.semat.agency/$relative_path"
             fi
-            # Remove all HTML comments and specific Framer/HTTrack comments
             sed -i \
-              -e 's/<!--.*-->//g' \
-              -e '/<link rel="canonical"/d' \
-              -e '/<link rel="alternate"/d' \
-              -e '/<meta name="robots"/d' \
-              -e 's/<html/<html dir="rtl" lang="ar"/' \
-              -e '/<base /d' \
+              -e 's/<html>/<html dir="rtl" lang="ar"/' \
               -e '/<head>/a <meta name="robots" content="index, follow" />' \
               -e "/<head>/a <link rel=\"canonical\" href=\"$canonical_url\" />" \
-              -e '/<head>/a <link rel="alternate" hreflang="ar-SA" href="https://www.semat.agency/" />' \
-              -e '/<head>/a <link rel="alternate" hreflang="ar" href="https://www.semat.agency/" />' \
-              -e '/<head>/a <link rel="alternate" hreflang="en" href="https://www.semat.agency/en" />' \
+              -e '/<head>/a <link rel="alternate" hreflang="ar" href="https://www.semat.agency/'"$relative_path"'" />' \
+              -e '/<head>/a <link rel="alternate" hreflang="en" href="https://www.semat.agency/en/'"$relative_path"'" />' \
               -e '/<head>/a <link rel="alternate" hreflang="x-default" href="https://www.semat.agency/" />' \
               -e '/<head>/a <style> .framer-NdJds.framer-138s38m{direction:rtl;text-align: right} body { direction: rtl; text-align: right; overflow-x: hidden; margin: 0; padding: 0; } #__framer-badge-container, .framer-nm3c8g { display: none !important; } .framer-text.framer-image { border-radius: 20px !important; max-height: 500px !important; object-fit: cover !important; }<\/style>' \
-              -e '/<head>/a <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"Semat Agency","description":"Semat Agency provides IT solutions, digital marketing, and custom software development for businesses in Saudi Arabia.","url":"https://www.semat.agency/en","address":{"@type":"PostalAddress","streetAddress":"123 Business Street","addressLocality":"Riyadh","addressRegion":"Riyadh Province","addressCountry":"SA","postalCode":"12345"},"telephone":"+966-50-361-7701","openingHours":"Mo-Fr 09:00-17:00","geo":{"@type":"GeoCoordinates","latitude":"24.7136","longitude":"46.6753"},"sameAs":["https://www.semat.agency/en/services.html","https://www.semat.agency/en/solutions.html","https://www.semat.agency/en/contact-us.html"]}<\/script>' \
+              -e '/<head>/a <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"Semat Agency","description":"Semat Agency provides IT solutions, digital marketing, and custom software development for businesses in Saudi Arabia.","url":"https://www.semat.agency/","address":{"@type":"PostalAddress","streetAddress":"123 Business Street","addressLocality":"Riyadh","addressRegion":"Riyadh Province","addressCountry":"SA","postalCode":"12345"},"telephone":"+966-50-361-7701","openingHours":"Mo-Fr 09:00-17:00","geo":{"@type":"GeoCoordinates","latitude":"24.7136","longitude":"46.6753"},"sameAs":["https://www.semat.agency/services.html","https://www.semat.agency/solutions.html","https://www.semat.agency/contact-us.html"]}<\/script>' \
               "$file"
           done
 
       - name: Post-Process HTML for English (/en)
         run: |
           find ./en -type f -name "*.html" | while read -r file; do
-            # Calculate the correct canonical URL for each file
             if [ "$file" = "./en/index.html" ]; then
               canonical_url="https://www.semat.agency/en"
             else
-              relative_path=$(echo "$file" | sed 's/^\.\///')
+              relative_path=$(echo "$file" | sed 's/^\.\//en\//')
               canonical_url="https://www.semat.agency/$relative_path"
             fi
-            # Remove all HTML comments and specific Framer/HTTrack comments
             sed -i \
-              -e 's/<!--.*-->//g' \
-              -e '/<link rel="canonical"/d' \
-              -e '/<link rel="alternate"/d' \
-              -e '/<meta name="robots"/d' \
-              -e 's/<html/<html dir="ltr" lang="en"/' \
-              -e '/<base /d' \
+              -e 's/<html>/<html dir="ltr" lang="en"/' \
               -e '/<head>/a <meta name="robots" content="index, follow" />' \
               -e "/<head>/a <link rel=\"canonical\" href=\"$canonical_url\" />" \
-              -e '/<head>/a <link rel="alternate" hreflang="ar-SA" href="https://www.semat.agency/" />' \
-              -e '/<head>/a <link rel="alternate" hreflang="ar" href="https://www.semat.agency/" />' \
-              -e '/<head>/a <link rel="alternate" hreflang="en" href="https://www.semat.agency/en" />' \
-              -e '/<head>/a <link rel="alternate" hreflang="x-default" href="https://www.semat.agency/en" />' \
+              -e '/<head>/a <link rel="alternate" hreflang="ar" href="https://www.semat.agency/'"$(echo "$relative_path" | sed 's/^en\///')"'" />' \
+              -e '/<head>/a <link rel="alternate" hreflang="en" href="https://www.semat.agency/'"$relative_path"'" />' \
+              -e '/<head>/a <link rel="alternate" hreflang="x-default" href="https://www.semat.agency/" />' \
               -e '/<head>/a <style>body { direction: ltr; text-align: left; overflow-x: hidden; margin: 0; padding: 0; } #__framer-badge-container, .framer-nm3c8g { display: none !important; } .framer-text.framer-image { border-radius: 20px !important; max-height: 500px !important; object-fit: cover !important; }<\/style>' \
               -e '/<head>/a <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"Semat Agency","description":"Semat Agency provides IT solutions, digital marketing, and custom software development for businesses in Saudi Arabia.","url":"https://www.semat.agency/","address":{"@type":"PostalAddress","streetAddress":"123 Business Street","addressLocality":"Riyadh","addressRegion":"Riyadh Province","addressCountry":"SA","postalCode":"12345"},"telephone":"+966-50-361-7701","openingHours":"Mo-Fr 09:00-17:00","geo":{"@type":"GeoCoordinates","latitude":"24.7136","longitude":"46.6753"},"sameAs":["https://www.semat.agency/services.html","https://www.semat.agency/solutions.html","https://www.semat.agency/contact-us.html"]}<\/script>' \
               "$file"
           done
+
+      - name: Add 404 Fallback for Backlinks
+        run: |
+          cat << 'EOF' > 404.html
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <title>404 - Page Not Found</title>
+            <script>
+              (function() {
+                var path = window.location.pathname;
+                if (!path.endsWith('.html') && !path.includes('.')) {
+                  window.location.replace(path.replace(/\/$/, '') + '.html');
+                }
+              })();
+            </script>
+          </head>
+          <body>
+            <p>Redirecting...</p>
+          </body>
+          </html>
+          EOF
 
       - name: Generate Sitemaps, Robots, and RSS
         run: |
@@ -124,7 +153,6 @@ jobs:
           echo "Allow: /" >> robots.txt
           echo "Allow: /en/" >> robots.txt
           echo "Disallow: /*?*" >> robots.txt
-          echo "Disallow: /index.html" >> robots.txt
           echo "Sitemap: https://www.semat.agency/sitemap.xml" >> robots.txt
           echo "Sitemap: https://www.semat.agency/en/sitemap.xml" >> robots.txt
           if [ -f robots.txt ]; then
@@ -148,6 +176,18 @@ jobs:
           done
           echo '</channel></rss>' >> rss.xml
 
+      - name: Validate Cloning
+        run: |
+          if [ ! -f "index.html" ] || [ ! -f "en/index.html" ]; then
+            echo "Error: Core files (index.html or en/index.html) missing!"
+            exit 1
+          fi
+          if find . -name "*.html" | xargs -n 1 grep -l 'href="/[^"]*[^.html]"' | grep -q .; then
+            echo "Error: Found internal links without .html!"
+            exit 1
+          fi
+          echo "Cloning validated successfully."
+
       - name: Commit and Push Changes
         env:
           ACTIONS_PAT: ${{ secrets.ACTIONS_PAT }}
@@ -158,8 +198,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "Automated update: Cloned and processed Semat Agency site"
-            git fetch origin
-            git pull origin main
+            git commit -m "Automated update: Cloned Semat Agency site with wget"
             git push https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/${{ github.repository }}.git HEAD:main
           fi
