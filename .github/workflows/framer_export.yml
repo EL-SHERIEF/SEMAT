@@ -48,14 +48,13 @@ jobs:
 
       - name: Post-Process HTML for Arabic (Root)
         run: |
-          # First, process all HTML files
           find . -type f -name "*.html" -not -path "./en/*" | while read -r file; do
-            url="https://www.semat.agency/${file#./}"
+            clean_url="https://www.semat.agency/$(basename "$file" .html)"
             sed -i \
               -e 's/<html/<html dir="rtl" lang="ar"/' \
               -e 's|https://semat.framer.websites|https://www.semat.agency|g' \
               -e '/<base /d' \
-              -e '/<head>/a <link rel="canonical" href="'"$url"'" />' \
+              -e '/<head>/a <link rel="canonical" href="'"$clean_url"'" />' \
               -e '/<head>/a <link rel="alternate" hreflang="ar-SA" href="https://www.semat.agency/" />' \
               -e '/<head>/a <link rel="alternate" hreflang="ar" href="https://www.semat.agency/" />' \
               -e '/<head>/a <link rel="alternate" hreflang="en" href="https://www.semat.agency/en" />' \
@@ -64,23 +63,16 @@ jobs:
               -e '/<head>/a <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"Semat Agency","description":"Semat Agency provides IT solutions, digital marketing, and custom software development for businesses in Saudi Arabia.","url":"https://www.semat.agency/","address":{"@type":"PostalAddress","streetAddress":"123 Business Street","addressLocality":"Riyadh","addressRegion":"Riyadh Province","addressCountry":"SA","postalCode":"12345"},"telephone":"+966-50-361-7701","openingHours":"Mo-Fr 09:00-17:00","geo":{"@type":"GeoCoordinates","latitude":"24.7136","longitude":"46.6753"},"sameAs":["https://www.semat.agency/servieces","https://www.semat.agency/solutions","https://www.semat.agency/contact-us"]}<\/script>' \
               "$file"
           done
-          # Then, move all .html files (except index.html) to their own directories
-          find . -type f -name "*.html" -not -path "./en/*" -not -name "index.html" | while read -r file; do
-            dir_name=$(basename "$file" .html)
-            mkdir -p "./$dir_name"
-            mv "$file" "./$dir_name/index.html"
-          done
 
       - name: Post-Process HTML for English (/en)
         run: |
-          # First, process all HTML files
           find ./en -type f -name "*.html" | while read -r file; do
-            url="https://www.semat.agency/${file#./}"
+            clean_url="https://www.semat.agency/en/$(basename "$file" .html)"
             sed -i \
               -e 's/<html/<html dir="ltr" lang="en"/' \
               -e 's|https://semat.framer.websites|https://www.semat.agency|g' \
               -e '/<base /d' \
-              -e '/<head>/a <link rel="canonical" href="'"$url"'" />' \
+              -e '/<head>/a <link rel="canonical" href="'"$clean_url"'" />' \
               -e '/<head>/a <link rel="alternate" hreflang="ar-SA" href="https://www.semat.agency/" />' \
               -e '/<head>/a <link rel="alternate" hreflang="ar" href="https://www.semat.agency/" />' \
               -e '/<head>/a <link rel="alternate" hreflang="en" href="https://www.semat.agency/en" />' \
@@ -89,40 +81,32 @@ jobs:
               -e '/<head>/a <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"Semat Agency","description":"Semat Agency provides IT solutions, digital marketing, and custom software development for businesses in Saudi Arabia.","url":"https://www.semat.agency/en","address":{"@type":"PostalAddress","streetAddress":"123 Business Street","addressLocality":"Riyadh","addressRegion":"Riyadh Province","addressCountry":"SA","postalCode":"12345"},"telephone":"+966-50-361-7701","openingHours":"Mo-Fr 09:00-17:00","geo":{"@type":"GeoCoordinates","latitude":"24.7136","longitude":"46.6753"},"sameAs":["https://www.semat.agency/en/servieces","https://www.semat.agency/en/solutions","https://www.semat.agency/en/contact-us"]}<\/script>' \
               "$file"
           done
-          # Then, move all .html files (except index.html) to their own directories
-          find ./en -type f -name "*.html" -not -name "index.html" | while read -r file; do
-            dir_name=$(basename "$file" .html)
-            mkdir -p "./en/$dir_name"
-            mv "$file" "./en/$dir_name/index.html"
-          done
+
+      - name: Create Jekyll Config for Clean URLs
+        run: |
+          cat << 'EOF' > _config.yml
+          # Jekyll configuration
+          permalink: pretty
+          EOF
+          echo "_config.yml created for clean URLs."
 
       - name: Generate Sitemaps, Robots, and RSS
         run: |
           echo '<?xml version="1.0" encoding="UTF-8"?>' > sitemap.xml
           echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' >> sitemap.xml
-          # Root level index.html
-          if [ -f "./index.html" ]; then
-            echo "  <url><loc>https://www.semat.agency/</loc><lastmod>$(date -u -d "now" +%Y-%m-%dT%H:%M:%SZ)</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>" >> sitemap.xml
-          fi
-          # Other Arabic pages
-          find . -type f -name "index.html" -not -path "./en/*" -not -path "./index.html" | while read -r file; do
-            dir_name=$(dirname "$file" | sed 's|^\./||')
-            url="https://www.semat.agency/$dir_name"
-            echo "  <url><loc>$url</loc><lastmod>$(date -u -d "now" +%Y-%m-%dT%H:%M:%SZ)</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>" >> sitemap.xml
+          find . -type f -name "*.html" -not -path "./en/*" | while read -r file; do
+            clean_url="https://www.semat.agency/$(basename "$file" .html)"
+            priority=$(if [[ "$file" == "./index.html" ]]; then echo "1.0"; else echo "0.8"; fi)
+            echo "  <url><loc>$clean_url</loc><lastmod>$(date -u -d "now" +%Y-%m-%dT%H:%M:%SZ)</lastmod><changefreq>daily</changefreq><priority>$priority</priority></url>" >> sitemap.xml
           done
           echo '</urlset>' >> sitemap.xml
 
           echo '<?xml version="1.0" encoding="UTF-8"?>' > en/sitemap.xml
           echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' >> en/sitemap.xml
-          # English root index.html
-          if [ -f "./en/index.html" ]; then
-            echo "  <url><loc>https://www.semat.agency/en</loc><lastmod>$(date -u -d "now" +%Y-%m-%dT%H:%M:%SZ)</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>" >> en/sitemap.xml
-          fi
-          # Other English pages
-          find ./en -type f -name "index.html" -not -path "./en/index.html" | while read -r file; do
-            dir_name=$(dirname "$file" | sed 's|^\./en/||')
-            url="https://www.semat.agency/en/$dir_name"
-            echo "  <url><loc>$url</loc><lastmod>$(date -u -d "now" +%Y-%m-%dT%H:%M:%SZ)</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>" >> en/sitemap.xml
+          find ./en -type f -name "*.html" | while read -r file; do
+            clean_url="https://www.semat.agency/en/$(basename "$file" .html)"
+            priority=$(if [[ "$file" == "./en/index.html" ]]; then echo "1.0"; else echo "0.8"; fi)
+            echo "  <url><loc>$clean_url</loc><lastmod>$(date -u -d "now" +%Y-%m-%dT%H:%M:%SZ)</lastmod><changefreq>daily</changefreq><priority>$priority</priority></url>" >> en/sitemap.xml
           done
           echo '</urlset>' >> en/sitemap.xml
 
@@ -144,25 +128,13 @@ jobs:
           echo '<?xml version="1.0" encoding="UTF-8"?>' > rss.xml
           echo '<rss version="2.0"><channel>' >> rss.xml
           echo "<title>Maintain Semat Agency Site</title><link>https://www.semat.agency</link><description>Automated updates for Semat Agency site maintenance</description>" >> rss.xml
-          # Arabic root
-          if [ -f "./index.html" ]; then
-            echo "<item><title>Arabic Home Update</title><link>https://www.semat.agency/</link><pubDate>$(date -u -R)</pubDate><description>Updated Arabic home page</description></item>" >> rss.xml
-          fi
-          # Other Arabic pages
-          find . -type f -name "index.html" -not -path "./en/*" -not -path "./index.html" | while read -r file; do
-            dir_name=$(dirname "$file" | sed 's|^\./||')
-            url="https://www.semat.agency/$dir_name"
-            echo "<item><title>Arabic Page Update: $dir_name</title><link>$url</link><pubDate>$(date -u -R)</pubDate><description>Updated Arabic page at $dir_name</description></item>" >> rss.xml
+          find . -type f -name "*.html" -not -path "./en/*" | while read -r file; do
+            clean_url="https://www.semat.agency/$(basename "$file" .html)"
+            echo "<item><title>Arabic Page Update: $(basename "$file" .html)</title><link>$clean_url</link><pubDate>$(date -u -R)</pubDate><description>Updated Arabic page: $(basename "$file" .html)</description></item>" >> rss.xml
           done
-          # English root
-          if [ -f "./en/index.html" ]; then
-            echo "<item><title>English Home Update</title><link>https://www.semat.agency/en</link><pubDate>$(date -u -R)</pubDate><description>Updated English home page</description></item>" >> rss.xml
-          fi
-          # Other English pages
-          find ./en -type f -name "index.html" -not -path "./en/index.html" | while read -r file; do
-            dir_name=$(dirname "$file" | sed 's|^\./en/||')
-            url="https://www.semat.agency/en/$dir_name"
-            echo "<item><title>English Page Update: $dir_name</title><link>$url</link><pubDate>$(date -u -R)</pubDate><description>Updated English page at $dir_name</description></item>" >> rss.xml
+          find ./en -type f -name "*.html" | while read -r file; do
+            clean_url="https://www.semat.agency/en/$(basename "$file" .html)"
+            echo "<item><title>English Page Update: $(basename "$file" .html)</title><link>$clean_url</link><pubDate>$(date -u -R)</pubDate><description>Updated English page: $(basename "$file" .html)</description></item>" >> rss.xml
           done
           echo '</channel></rss>' >> rss.xml
 
@@ -173,7 +145,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git add .
-          git commit -m "Automated update: Freshly cloned and processed Semat Agency site with clean URLs" || echo "Nothing to commit, proceeding with push."
+          git commit -m "Automated update: Freshly cloned and processed Semat Agency site with Jekyll clean URLs" || echo "Nothing to commit, proceeding with push."
           git fetch origin
           git reset --hard origin/main
           git add .
