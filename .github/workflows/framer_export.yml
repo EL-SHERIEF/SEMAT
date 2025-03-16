@@ -1,4 +1,3 @@
-
 name: Maintain Semat Agency Site
 
 on:
@@ -22,6 +21,12 @@ jobs:
       - name: Install Dependencies
         run: sudo apt-get update && sudo apt-get install -y python3 curl httrack rsync
 
+      - name: Clean Old Directories
+        run: |
+          # Remove all files and directories except .git and .github
+          find . -maxdepth 1 -not -name '.' -not -name '..' -not -name '.git' -not -name '.github' -exec rm -rf {} +
+          echo "Cleaned old directories."
+
       - name: Export Arabic Framer Site (Main Site)
         run: |
           echo "Downloading Arabic site..."
@@ -43,6 +48,7 @@ jobs:
 
       - name: Post-Process HTML for Arabic (Root)
         run: |
+          # First, process all HTML files
           find . -type f -name "*.html" -not -path "./en/*" | while read -r file; do
             url="https://www.semat.agency/${file#./}"
             sed -i \
@@ -55,12 +61,19 @@ jobs:
               -e '/<head>/a <link rel="alternate" hreflang="en" href="https://www.semat.agency/en" />' \
               -e '/<head>/a <link rel="alternate" hreflang="x-default" href="https://www.semat.agency/" />' \
               -e '/<head>/a <style> .framer-eeoUn.framer-v-1nr8e62.framer-1712hk7,.framer-3nmyoc, .framer-h5rtw.framer-e6xPE.framer-4pfxF{direction:ltr !important;}.framer-NdJds.framer-138s38m{direction:rtl;text-align: right} body { direction: rtl; text-align: right; overflow-x: hidden; margin: 0; padding: 0; } #__framer-badge-container, .framer-nm3c8g { display: none !important; } [data-framer-component] { direction: rtl !important; } .framer-text.framer-image { border-radius: 20px !important; max-height: 500px !important; object-fit: cover !important; }<\/style>' \
-              -e '/<head>/a <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"Semat Agency","description":"Semat Agency provides IT solutions, digital marketing, and custom software development for businesses in Saudi Arabia.","url":"https://www.semat.agency/","address":{"@type":"PostalAddress","streetAddress":"123 Business Street","addressLocality":"Riyadh","addressRegion":"Riyadh Province","addressCountry":"SA","postalCode":"12345"},"telephone":"+966-50-361-7701","openingHours":"Mo-Fr 09:00-17:00","geo":{"@type":"GeoCoordinates","latitude":"24.7136","longitude":"46.6753"},"sameAs":["https://www.semat.agency/servieces.html","https://www.semat.agency/solutions.html","https://www.semat.agency/contact-us.html"]}<\/script>' \
+              -e '/<head>/a <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"Semat Agency","description":"Semat Agency provides IT solutions, digital marketing, and custom software development for businesses in Saudi Arabia.","url":"https://www.semat.agency/","address":{"@type":"PostalAddress","streetAddress":"123 Business Street","addressLocality":"Riyadh","addressRegion":"Riyadh Province","addressCountry":"SA","postalCode":"12345"},"telephone":"+966-50-361-7701","openingHours":"Mo-Fr 09:00-17:00","geo":{"@type":"GeoCoordinates","latitude":"24.7136","longitude":"46.6753"},"sameAs":["https://www.semat.agency/servieces","https://www.semat.agency/solutions","https://www.semat.agency/contact-us"]}<\/script>' \
               "$file"
+          done
+          # Then, move all .html files (except index.html) to their own directories
+          find . -type f -name "*.html" -not -path "./en/*" -not -name "index.html" | while read -r file; do
+            dir_name=$(basename "$file" .html)
+            mkdir -p "./$dir_name"
+            mv "$file" "./$dir_name/index.html"
           done
 
       - name: Post-Process HTML for English (/en)
         run: |
+          # First, process all HTML files
           find ./en -type f -name "*.html" | while read -r file; do
             url="https://www.semat.agency/${file#./}"
             sed -i \
@@ -73,29 +86,43 @@ jobs:
               -e '/<head>/a <link rel="alternate" hreflang="en" href="https://www.semat.agency/en" />' \
               -e '/<head>/a <link rel="alternate" hreflang="x-default" href="https://www.semat.agency/" />' \
               -e '/<head>/a <style>body { direction: ltr; text-align: left; overflow-x: hidden; margin: 0; padding: 0; } #__framer-badge-container, .framer-nm3c8g { display: none !important; } [data-framer-component] { direction: ltr !important; } .framer-text.framer-image { border-radius: 20px !important; max-height: 500px !important; object-fit: cover !important; }<\/style>' \
-              -e '/<head>/a <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"Semat Agency","description":"Semat Agency provides IT solutions, digital marketing, and custom software development for businesses in Saudi Arabia.","url":"https://www.semat.agency/en","address":{"@type":"PostalAddress","streetAddress":"123 Business Street","addressLocality":"Riyadh","addressRegion":"Riyadh Province","addressCountry":"SA","postalCode":"12345"},"telephone":"+966-50-361-7701","openingHours":"Mo-Fr 09:00-17:00","geo":{"@type":"GeoCoordinates","latitude":"24.7136","longitude":"46.6753"},"sameAs":["https://www.semat.agency/en/servieces.html","https://www.semat.agency/en/solutions.html","https://www.semat.agency/en/contact-us.html"]}<\/script>' \
+              -e '/<head>/a <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"Semat Agency","description":"Semat Agency provides IT solutions, digital marketing, and custom software development for businesses in Saudi Arabia.","url":"https://www.semat.agency/en","address":{"@type":"PostalAddress","streetAddress":"123 Business Street","addressLocality":"Riyadh","addressRegion":"Riyadh Province","addressCountry":"SA","postalCode":"12345"},"telephone":"+966-50-361-7701","openingHours":"Mo-Fr 09:00-17:00","geo":{"@type":"GeoCoordinates","latitude":"24.7136","longitude":"46.6753"},"sameAs":["https://www.semat.agency/en/servieces","https://www.semat.agency/en/solutions","https://www.semat.agency/en/contact-us"]}<\/script>' \
               "$file"
+          done
+          # Then, move all .html files (except index.html) to their own directories
+          find ./en -type f -name "*.html" -not -name "index.html" | while read -r file; do
+            dir_name=$(basename "$file" .html)
+            mkdir -p "./en/$dir_name"
+            mv "$file" "./en/$dir_name/index.html"
           done
 
       - name: Generate Sitemaps, Robots, and RSS
         run: |
           echo '<?xml version="1.0" encoding="UTF-8"?>' > sitemap.xml
           echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' >> sitemap.xml
-          find . -type f -name "*.html" -not -path "./en/*" | while read -r file; do
-            url="https://www.semat.agency/${file#./}"
-            lastmod=$(date -u -d "now" +%Y-%m-%dT%H:%M:%SZ)
-            priority=$(if [[ "$file" == "./index.html" ]]; then echo "1.0"; else echo "0.8"; fi)
-            echo "  <url><loc>$url</loc><lastmod>$lastmod</lastmod><changefreq>daily</changefreq><priority>$priority</priority></url>" >> sitemap.xml
+          # Root level index.html
+          if [ -f "./index.html" ]; then
+            echo "  <url><loc>https://www.semat.agency/</loc><lastmod>$(date -u -d "now" +%Y-%m-%dT%H:%M:%SZ)</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>" >> sitemap.xml
+          fi
+          # Other Arabic pages
+          find . -type f -name "index.html" -not -path "./en/*" -not -path "./index.html" | while read -r file; do
+            dir_name=$(dirname "$file" | sed 's|^\./||')
+            url="https://www.semat.agency/$dir_name"
+            echo "  <url><loc>$url</loc><lastmod>$(date -u -d "now" +%Y-%m-%dT%H:%M:%SZ)</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>" >> sitemap.xml
           done
           echo '</urlset>' >> sitemap.xml
 
           echo '<?xml version="1.0" encoding="UTF-8"?>' > en/sitemap.xml
           echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' >> en/sitemap.xml
-          find ./en -type f -name "*.html" | while read -r file; do
-            url="https://www.semat.agency/${file#./}"
-            lastmod=$(date -u -d "now" +%Y-%m-%dT%H:%M:%SZ)
-            priority=$(if [[ "$file" == "./en/index.html" ]]; then echo "1.0"; else echo "0.8"; fi)
-            echo "  <url><loc>$url</loc><lastmod>$lastmod</lastmod><changefreq>daily</changefreq><priority>$priority</priority></url>" >> en/sitemap.xml
+          # English root index.html
+          if [ -f "./en/index.html" ]; then
+            echo "  <url><loc>https://www.semat.agency/en</loc><lastmod>$(date -u -d "now" +%Y-%m-%dT%H:%M:%SZ)</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>" >> en/sitemap.xml
+          fi
+          # Other English pages
+          find ./en -type f -name "index.html" -not -path "./en/index.html" | while read -r file; do
+            dir_name=$(dirname "$file" | sed 's|^\./en/||')
+            url="https://www.semat.agency/en/$dir_name"
+            echo "  <url><loc>$url</loc><lastmod>$(date -u -d "now" +%Y-%m-%dT%H:%M:%SZ)</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>" >> en/sitemap.xml
           done
           echo '</urlset>' >> en/sitemap.xml
 
@@ -114,17 +141,28 @@ jobs:
             exit 1
           fi
 
-
           echo '<?xml version="1.0" encoding="UTF-8"?>' > rss.xml
           echo '<rss version="2.0"><channel>' >> rss.xml
           echo "<title>Maintain Semat Agency Site</title><link>https://www.semat.agency</link><description>Automated updates for Semat Agency site maintenance</description>" >> rss.xml
-          find . -type f -name "*.html" -not -path "./en/*" | while read -r file; do
-            url="https://www.semat.agency/${file#./}"
-            echo "<item><title>Arabic Page Update: ${file#./}</title><link>$url</link><pubDate>$(date -u -R)</pubDate><description>Updated Arabic page at ${file#./}</description></item>" >> rss.xml
+          # Arabic root
+          if [ -f "./index.html" ]; then
+            echo "<item><title>Arabic Home Update</title><link>https://www.semat.agency/</link><pubDate>$(date -u -R)</pubDate><description>Updated Arabic home page</description></item>" >> rss.xml
+          fi
+          # Other Arabic pages
+          find . -type f -name "index.html" -not -path "./en/*" -not -path "./index.html" | while read -r file; do
+            dir_name=$(dirname "$file" | sed 's|^\./||')
+            url="https://www.semat.agency/$dir_name"
+            echo "<item><title>Arabic Page Update: $dir_name</title><link>$url</link><pubDate>$(date -u -R)</pubDate><description>Updated Arabic page at $dir_name</description></item>" >> rss.xml
           done
-          find ./en -type f -name "*.html" | while read -r file; do
-            url="https://www.semat.agency/${file#./}"
-            echo "<item><title>English Page Update: ${file#./}</title><link>$url</link><pubDate>$(date -u -R)</pubDate><description>Updated English page at ${file#./}</description></item>" >> rss.xml
+          # English root
+          if [ -f "./en/index.html" ]; then
+            echo "<item><title>English Home Update</title><link>https://www.semat.agency/en</link><pubDate>$(date -u -R)</pubDate><description>Updated English home page</description></item>" >> rss.xml
+          fi
+          # Other English pages
+          find ./en -type f -name "index.html" -not -path "./en/index.html" | while read -r file; do
+            dir_name=$(dirname "$file" | sed 's|^\./en/||')
+            url="https://www.semat.agency/en/$dir_name"
+            echo "<item><title>English Page Update: $dir_name</title><link>$url</link><pubDate>$(date -u -R)</pubDate><description>Updated English page at $dir_name</description></item>" >> rss.xml
           done
           echo '</channel></rss>' >> rss.xml
 
@@ -135,11 +173,9 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git add .
-          if git diff --cached --quiet; then
-            echo "No changes to commit."
-          else
-            git commit -m "Automated update: Cloned and processed Semat Agency site"
-            git fetch origin
-            git pull origin main
-            git push https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/${{ github.repository }}.git HEAD:main
-          fi
+          git commit -m "Automated update: Freshly cloned and processed Semat Agency site with clean URLs" || echo "Nothing to commit, proceeding with push."
+          git fetch origin
+          git reset --hard origin/main
+          git add .
+          git commit -m "Automated update: Resolved any conflicts and updated Semat Agency site" || true
+          git push https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/${{ github.repository }}.git HEAD:main --force
