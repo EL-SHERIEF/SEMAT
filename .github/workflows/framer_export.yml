@@ -33,6 +33,11 @@ jobs:
           httrack "https://semat.framer.website/ar" -O ./main_site --mirror --keep-alive --depth=2 --clean
           if [ -d "./main_site/semat.framer.website/ar" ]; then
             rsync -a ./main_site/semat.framer.website/ar/ ./
+            echo "Arabic site files:"
+            ls -la ./
+          else
+            echo "Failed to fetch Arabic site or directory not found."
+            exit 1
           fi
           rm -rf ./main_site
 
@@ -43,6 +48,11 @@ jobs:
           mkdir -p ./en
           if [ -d "./en_site/semat.framer.website" ]; then
             rsync -a --exclude 'ar' ./en_site/semat.framer.website/ ./en/
+            echo "English site files in /en:"
+            ls -la ./en/
+          else
+            echo "Failed to fetch English site or directory not found."
+            exit 1
           fi
           rm -rf ./en_site
 
@@ -96,8 +106,9 @@ jobs:
           echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' >> sitemap.xml
           find . -type f -name "*.html" -not -path "./en/*" | while read -r file; do
             clean_url="https://www.semat.agency/$(basename "$file" .html)"
+            lastmod=$(date -u -d "now" +%Y-%m-%dT%H:%M:%SZ)
             priority=$(if [[ "$file" == "./index.html" ]]; then echo "1.0"; else echo "0.8"; fi)
-            echo "  <url><loc>$clean_url</loc><lastmod>$(date -u -d "now" +%Y-%m-%dT%H:%M:%SZ)</lastmod><changefreq>daily</changefreq><priority>$priority</priority></url>" >> sitemap.xml
+            echo "  <url><loc>$clean_url</loc><lastmod>$lastmod</lastmod><changefreq>daily</changefreq><priority>$priority</priority></url>" >> sitemap.xml
           done
           echo '</urlset>' >> sitemap.xml
 
@@ -105,8 +116,9 @@ jobs:
           echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' >> en/sitemap.xml
           find ./en -type f -name "*.html" | while read -r file; do
             clean_url="https://www.semat.agency/en/$(basename "$file" .html)"
+            lastmod=$(date -u -d "now" +%Y-%m-%dT%H:%M:%SZ)
             priority=$(if [[ "$file" == "./en/index.html" ]]; then echo "1.0"; else echo "0.8"; fi)
-            echo "  <url><loc>$clean_url</loc><lastmod>$(date -u -d "now" +%Y-%m-%dT%H:%M:%SZ)</lastmod><changefreq>daily</changefreq><priority>$priority</priority></url>" >> en/sitemap.xml
+            echo "  <url><loc>$clean_url</loc><lastmod>$lastmod</lastmod><changefreq>daily</changefreq><priority>$priority</priority></url>" >> en/sitemap.xml
           done
           echo '</urlset>' >> en/sitemap.xml
 
@@ -145,9 +157,6 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git add .
-          git commit -m "Automated update: Freshly cloned and processed Semat Agency site with Jekyll clean URLs" || echo "Nothing to commit, proceeding with push."
+          git commit -m "Automated update: Cloned and processed Semat Agency site with clean URLs" || echo "Nothing to commit, forcing push anyway."
           git fetch origin
-          git reset --hard origin/main
-          git add .
-          git commit -m "Automated update: Resolved any conflicts and updated Semat Agency site" || true
           git push https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/${{ github.repository }}.git HEAD:main --force
