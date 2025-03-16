@@ -43,60 +43,58 @@ jobs:
       - name: Post-Process HTML for Arabic (Root)
         run: |
           find . -type f -name "*.html" -not -path "./en/*" | while read -r file; do
-            url="https://www.semat.agency/${file#./}"
-
-
-
-
-
-
-
+            # Calculate the correct canonical URL for each file
+            if [ "$file" = "./index.html" ]; then
+              canonical_url="https://www.semat.agency/"
+            else
+              relative_path=$(echo "$file" | sed 's/^\.\///')
+              canonical_url="https://www.semat.agency/$relative_path"
+            fi
+            # Remove all HTML comments and specific Framer/HTTrack comments
             sed -i \
-
-
-
-
+              -e 's/<!--.*-->//g' \
+              -e '/<link rel="canonical"/d' \
+              -e '/<link rel="alternate"/d' \
+              -e '/<meta name="robots"/d' \
               -e 's/<html/<html dir="rtl" lang="ar"/' \
-              -e 's|https://semat.framer.websites|https://www.semat.agency|g' \
               -e '/<base /d' \
-              -e '/<head>/a <link rel="canonical" href="'"$url"'" />' \
-
+              -e '/<head>/a <meta name="robots" content="index, follow" />' \
+              -e "/<head>/a <link rel=\"canonical\" href=\"$canonical_url\" />" \
               -e '/<head>/a <link rel="alternate" hreflang="ar-SA" href="https://www.semat.agency/" />' \
               -e '/<head>/a <link rel="alternate" hreflang="ar" href="https://www.semat.agency/" />' \
               -e '/<head>/a <link rel="alternate" hreflang="en" href="https://www.semat.agency/en" />' \
               -e '/<head>/a <link rel="alternate" hreflang="x-default" href="https://www.semat.agency/" />' \
-              -e '/<head>/a <style> .framer-eeoUn.framer-v-1nr8e62.framer-1712hk7,.framer-3nmyoc, .framer-h5rtw.framer-e6xPE.framer-4pfxF{direction:ltr !important;}.framer-NdJds.framer-138s38m{direction:rtl;text-align: right} body { direction: rtl; text-align: right; overflow-x: hidden; margin: 0; padding: 0; } #__framer-badge-container, .framer-nm3c8g { display: none !important; } [data-framer-component] { direction: rtl !important; } .framer-text.framer-image { border-radius: 20px !important; max-height: 500px !important; object-fit: cover !important; }<\/style>' \
-              -e '/<head>/a <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"Semat Agency","description":"Semat Agency provides IT solutions, digital marketing, and custom software development for businesses in Saudi Arabia.","url":"https://www.semat.agency/","address":{"@type":"PostalAddress","streetAddress":"123 Business Street","addressLocality":"Riyadh","addressRegion":"Riyadh Province","addressCountry":"SA","postalCode":"12345"},"telephone":"+966-50-361-7701","openingHours":"Mo-Fr 09:00-17:00","geo":{"@type":"GeoCoordinates","latitude":"24.7136","longitude":"46.6753"},"sameAs":["https://www.semat.agency/servieces.html","https://www.semat.agency/solutions.html","https://www.semat.agency/contact-us.html"]}<\/script>' \
+              -e '/<head>/a <style> .framer-NdJds.framer-138s38m{direction:rtl;text-align: right} body { direction: rtl; text-align: right; overflow-x: hidden; margin: 0; padding: 0; } #__framer-badge-container, .framer-nm3c8g { display: none !important; } .framer-text.framer-image { border-radius: 20px !important; max-height: 500px !important; object-fit: cover !important; }<\/style>' \
+              -e '/<head>/a <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"Semat Agency","description":"Semat Agency provides IT solutions, digital marketing, and custom software development for businesses in Saudi Arabia.","url":"https://www.semat.agency/en","address":{"@type":"PostalAddress","streetAddress":"123 Business Street","addressLocality":"Riyadh","addressRegion":"Riyadh Province","addressCountry":"SA","postalCode":"12345"},"telephone":"+966-50-361-7701","openingHours":"Mo-Fr 09:00-17:00","geo":{"@type":"GeoCoordinates","latitude":"24.7136","longitude":"46.6753"},"sameAs":["https://www.semat.agency/en/services.html","https://www.semat.agency/en/solutions.html","https://www.semat.agency/en/contact-us.html"]}<\/script>' \
               "$file"
           done
 
       - name: Post-Process HTML for English (/en)
         run: |
           find ./en -type f -name "*.html" | while read -r file; do
-            url="https://www.semat.agency/${file#./}"
-
-
-
-
-
-
-
+            # Calculate the correct canonical URL for each file
+            if [ "$file" = "./en/index.html" ]; then
+              canonical_url="https://www.semat.agency/en"
+            else
+              relative_path=$(echo "$file" | sed 's/^\.\///')
+              canonical_url="https://www.semat.agency/$relative_path"
+            fi
+            # Remove all HTML comments and specific Framer/HTTrack comments
             sed -i \
-
-
-
-
+              -e 's/<!--.*-->//g' \
+              -e '/<link rel="canonical"/d' \
+              -e '/<link rel="alternate"/d' \
+              -e '/<meta name="robots"/d' \
               -e 's/<html/<html dir="ltr" lang="en"/' \
-              -e 's|https://semat.framer.websites|https://www.semat.agency|g' \
               -e '/<base /d' \
-              -e '/<head>/a <link rel="canonical" href="'"$url"'" />' \
-
+              -e '/<head>/a <meta name="robots" content="index, follow" />' \
+              -e "/<head>/a <link rel=\"canonical\" href=\"$canonical_url\" />" \
               -e '/<head>/a <link rel="alternate" hreflang="ar-SA" href="https://www.semat.agency/" />' \
               -e '/<head>/a <link rel="alternate" hreflang="ar" href="https://www.semat.agency/" />' \
               -e '/<head>/a <link rel="alternate" hreflang="en" href="https://www.semat.agency/en" />' \
-              -e '/<head>/a <link rel="alternate" hreflang="x-default" href="https://www.semat.agency/" />' \
-              -e '/<head>/a <style>body { direction: ltr; text-align: left; overflow-x: hidden; margin: 0; padding: 0; } #__framer-badge-container, .framer-nm3c8g { display: none !important; } [data-framer-component] { direction: ltr !important; } .framer-text.framer-image { border-radius: 20px !important; max-height: 500px !important; object-fit: cover !important; }<\/style>' \
-              -e '/<head>/a <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"Semat Agency","description":"Semat Agency provides IT solutions, digital marketing, and custom software development for businesses in Saudi Arabia.","url":"https://www.semat.agency/en","address":{"@type":"PostalAddress","streetAddress":"123 Business Street","addressLocality":"Riyadh","addressRegion":"Riyadh Province","addressCountry":"SA","postalCode":"12345"},"telephone":"+966-50-361-7701","openingHours":"Mo-Fr 09:00-17:00","geo":{"@type":"GeoCoordinates","latitude":"24.7136","longitude":"46.6753"},"sameAs":["https://www.semat.agency/en/servieces.html","https://www.semat.agency/en/solutions.html","https://www.semat.agency/en/contact-us.html"]}<\/script>' \
+              -e '/<head>/a <link rel="alternate" hreflang="x-default" href="https://www.semat.agency/en" />' \
+              -e '/<head>/a <style>body { direction: ltr; text-align: left; overflow-x: hidden; margin: 0; padding: 0; } #__framer-badge-container, .framer-nm3c8g { display: none !important; } .framer-text.framer-image { border-radius: 20px !important; max-height: 500px !important; object-fit: cover !important; }<\/style>' \
+              -e '/<head>/a <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"Semat Agency","description":"Semat Agency provides IT solutions, digital marketing, and custom software development for businesses in Saudi Arabia.","url":"https://www.semat.agency/","address":{"@type":"PostalAddress","streetAddress":"123 Business Street","addressLocality":"Riyadh","addressRegion":"Riyadh Province","addressCountry":"SA","postalCode":"12345"},"telephone":"+966-50-361-7701","openingHours":"Mo-Fr 09:00-17:00","geo":{"@type":"GeoCoordinates","latitude":"24.7136","longitude":"46.6753"},"sameAs":["https://www.semat.agency/services.html","https://www.semat.agency/solutions.html","https://www.semat.agency/contact-us.html"]}<\/script>' \
               "$file"
           done
 
@@ -136,7 +134,6 @@ jobs:
             echo "Failed to generate robots.txt" >&2
             exit 1
           fi
-
 
           echo '<?xml version="1.0" encoding="UTF-8"?>' > rss.xml
           echo '<rss version="2.0"><channel>' >> rss.xml
