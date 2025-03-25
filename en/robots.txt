@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://semat.framer.website/sitemap.xml
